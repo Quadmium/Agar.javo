@@ -91,6 +91,5 @@ public class MainMenu
         selectionPanel.setVisible(true);
         frame.setSize(500, 500);
         frame.setResizable(false);
-        //https://www.youtube.com/watch?v=XKBYcE59y9w
     }
 }
