@@ -1,4 +1,8 @@
 #BlueJ class context
-comment0.params=g
-comment0.target=void\ paintComponent(java.awt.Graphics)
-numComments=1
+comment0.params=ip\ parent
+comment0.target=AgarPanel(java.lang.String,\ MainMenu)
+comment1.params=g
+comment1.target=void\ paintComponent(java.awt.Graphics)
+comment2.params=
+comment2.target=void\ connect()
+numComments=3
