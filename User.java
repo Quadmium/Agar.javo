@@ -12,7 +12,7 @@ public class User
     private boolean connected;
     private Inport inport;
 
-    private double x, y;
+    private Vector2D position;
 
     /**
      * Handles all incoming data from this user.
