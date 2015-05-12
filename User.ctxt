@@ -1,16 +1,18 @@
 #BlueJ class context
 comment0.params=newSocket
 comment0.target=User(java.net.Socket)
-comment0.text=\r\n\ Creates\ a\ new\ Client\ User\ with\ the\ socket\ from\ the\ newly\ connected\ client.\r\n\r\n\ @param\ newSocket\ \ The\ socket\ from\ the\ connected\ client.\r\n
+comment0.text=\n\ Creates\ a\ new\ Client\ User\ with\ the\ socket\ from\ the\ newly\ connected\ client.\n\n\ @param\ newSocket\ \ The\ socket\ from\ the\ connected\ client.\n
 comment1.params=
 comment1.target=boolean\ isConnected()
-comment1.text=\r\n\ Gets\ the\ connection\ status\ of\ this\ user.\r\n\r\n\ @return\ \ If\ this\ user\ is\ still\ connected.\r\n
+comment1.text=\n\ Gets\ the\ connection\ status\ of\ this\ user.\n\n\ @return\ \ If\ this\ user\ is\ still\ connected.\n
 comment2.params=
 comment2.target=void\ purge()
-comment2.text=\r\n\ Purges\ this\ user\ from\ connection.\r\n
+comment2.text=\n\ Purges\ this\ user\ from\ connection.\n
 comment3.params=
 comment3.target=java.lang.String\ toString()
-comment3.text=\r\n\ Returns\ the\ String\ representation\ of\ this\ user.\r\n\r\n\ @return\ \ A\ string\ representation.\r\n
+comment3.text=\n\ Returns\ the\ String\ representation\ of\ this\ user.\n\n\ @return\ \ A\ string\ representation.\n
 comment4.params=x\ y
 comment4.target=void\ setPos(double,\ double)
-numComments=5
+comment5.params=deltaTime
+comment5.target=void\ move(double)
+numComments=6

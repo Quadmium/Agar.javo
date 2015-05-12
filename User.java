@@ -7,12 +7,15 @@ import java.io.ObjectInputStream;
  */
 public class User
 {
-    private static final int USER_THROTTLE = 200;
+    private static final int USER_THROTTLE = 33;
+    private int MAX_VELOCITY = 3;
     private Socket socket;
     private boolean connected;
     private Inport inport;
 
-    private Vector2D position;
+    private Vector2D position = new Vector2D();
+    private Vector2D velocity = new Vector2D();
+    private Vector2D acceleration = new Vector2D();
 
     /**
      * Handles all incoming data from this user.
@@ -37,7 +40,7 @@ public class User
             // Enter process loop
             while(true)
             {
-                // Sleep
+                move(USER_THROTTLE);
                 try
                 {
                     Thread.sleep(USER_THROTTLE);
@@ -62,9 +65,6 @@ public class User
         // Get input
         inport = new Inport();
         inport.start();
-
-        x=0;
-        y=0;
     }
 
     /**
@@ -106,8 +106,18 @@ public class User
 
     public void setPos(double x, double y)
     {
-        this.x=x;
-        this.y=y;
+        position = new Vector2D(x, y);
+    }
+    
+    public void move(double deltaTime)
+    {
+        Vector2D deltaV = acceleration.scalarMult(deltaTime);
+        velocity = velocity.plus(deltaV);
+        if(velocity.length() > MAX_VELOCITY)
+            velocity = velocity.unitVector().scalarMult(MAX_VELOCITY);
+        
+        Vector2D deltaP = velocity.scalarMult(deltaTime);
+        position = position.plus(deltaP);
     }
 }
 
