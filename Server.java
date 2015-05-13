@@ -9,7 +9,7 @@ import java.util.Timer;
 public class Server
 {
     private static final int PORT = 40124;
-    private static final int ROOM_TICK = 100;
+    private static final int ROOM_TICK = 10;
     private static final int CLIENTADDER_THROTTLE = 200;
     private ServerSocket serverSocket;
     private InetAddress hostAddress;
@@ -32,6 +32,7 @@ public class Server
         System.out.println("Server running: " + serverSocket);
         (new Thread(new worldUpdateThread())).start();
         (new Thread(new ClientAdderThread())).start();
+        (new Thread(new ClientRemoverThread())).start();
     }
     
     private class worldUpdateThread implements Runnable
@@ -65,24 +66,6 @@ public class Server
         {
             while(true)
             {
-                synchronized(LOCK) {
-                    for(int i = 0; i<users.size(); i++)
-                    {
-                        // Check connection, remove on dead
-                        if(!users.get(i).isConnected())
-                        {
-                            System.out.println(users.get(i)+" removed due to lack of connection.");
-                            users.remove(i);
-                            userData.remove(i);
-                            i--;
-                        }
-                    }
-                    
-                    for(int j=0; j<users.size(); j++)
-                    {
-                        users.get(j).setIndex(j);
-                    }
-                }
                 // Get a client trying to connect
                 try {
                     socket = serverSocket.accept();
@@ -94,6 +77,39 @@ public class Server
                 }
                 try {
                     Thread.sleep(CLIENTADDER_THROTTLE);
+                } catch(InterruptedException e) {System.out.println(e);}
+            }
+        }
+    }
+    
+    private class ClientRemoverThread implements Runnable
+    {
+        public void run()
+        {
+            while(true)
+            {
+                synchronized(LOCK) {
+                    for(int i = 0; i<users.size(); i++)
+                    {
+                        // Check connection, remove on dead
+                        if(!users.get(i).isConnected())
+                        {
+                            System.out.println(users.get(i)+" removed due to lack of connection.");
+                            users.get(i).purge();
+                            try{Thread.sleep(15);}catch(Exception e){}
+                            users.remove(i);
+                            userData.remove(i);
+                            i--;
+                        }
+                    }
+                    
+                    for(int j=0; j<users.size(); j++)
+                    {
+                        users.get(j).setIndex(j);
+                    }
+                }
+                try {
+                    Thread.sleep(200);
                 } catch(InterruptedException e) {System.out.println(e);}
             }
         }

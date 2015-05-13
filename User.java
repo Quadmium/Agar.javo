@@ -12,41 +12,110 @@ import java.util.ArrayList;
  */
 public class User
 {
-    private static final int USER_THROTTLE = 33;
-    private int MAX_VELOCITY = 3;
+    private static final int USER_THROTTLE = 10;
+    private int MAX_VELOCITY = 30;
     private Socket socket;
     private boolean connected;
-    private Inport inport;
+    private InputHandler inputHandler;
+    private OutputHandler outputHandler;
     private int dataIndex;
     private volatile ArrayList<GameObject> userData;
-
+    private String name = "";
+    private boolean poison = false;
+    
     private Vector2D position = new Vector2D(200.0, 200.0);
     private Vector2D velocity = new Vector2D();
     private volatile double accelerationX = 0.0;
     private volatile double accelerationY = 0.0;
+    private volatile long lastMessage = System.nanoTime();
+    private final double TIMEOUT = 5.0;
     
     public User(Socket newSocket, ArrayList<GameObject> userData)
     {
         // Set properties
         socket = newSocket;
         connected = true;
-        // Get input
-        inport = new Inport();
-        inport.start();
+        inputHandler = new InputHandler();
+        inputHandler.start();
+        outputHandler = new OutputHandler();
+        outputHandler.start();
         this.userData = userData;
         
-        userData.add(new GameObject("", 200.0, 200.0));
+        userData.add(new GameObject(name, 200.0, 200.0));
         dataIndex = userData.size() - 1;
+        
+        (new Thread(new DisconnectWatcher(this))).start();
     }
     
-    private class Inport extends Thread
+    private class DisconnectWatcher extends Thread
+    {
+        private User user;
+        
+        public DisconnectWatcher(User user)
+        {
+            this.user = user;
+        }
+        
+        public void run()
+        {
+            while(true)
+            {
+                double lag = (System.nanoTime() - lastMessage) / 1000000000;
+                if(lag > TIMEOUT)
+                {
+                    user.purge();
+                    return;
+                }
+                try{Thread.sleep(500);}catch(Exception e){}
+            }
+        }
+    }
+    
+    private class InputHandler extends Thread
     {
         private BufferedReader in;
-        private PrintWriter out;
         public void run()
         {
             try {
                 in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            }
+            catch(IOException e)
+            {
+                System.out.println("Could not get stream from "+toString());
+                return;
+            }
+            // Announce
+            System.out.println(socket+" has connected input.");
+            // Enter process loop
+            while(true)
+            {
+                if(poison)
+                    return;
+                try
+                {
+                    String message = in.readLine();
+                    lastMessage = System.nanoTime();
+                    if(message.length() > 0)
+                    {
+                        accelerationX = Double.parseDouble(message.split(",")[0]);
+                        accelerationY = Double.parseDouble(message.split(",")[1]);
+                    }
+                    Thread.sleep(USER_THROTTLE);
+                }
+                catch(Exception e)
+                {
+                    System.out.println(toString()+" has input interrupted.");
+                }
+            }
+        }
+    }
+    
+    private class OutputHandler extends Thread
+    {
+        private PrintWriter out;
+        public void run()
+        {
+            try {
                 out = new PrintWriter(socket.getOutputStream(), true);
             }
             catch(IOException e)
@@ -59,14 +128,10 @@ public class User
             // Enter process loop
             while(true)
             {
+                if(poison)
+                    return;
                 try
                 {
-                    String message = in.readLine();
-                    if(message.length() > 0)
-                    {
-                        accelerationX = Double.parseDouble(message.split(",")[0]);
-                        accelerationY = Double.parseDouble(message.split(",")[1]);
-                    }
                     out.println(getBoardData());
                     Thread.sleep(USER_THROTTLE);
                 }
@@ -90,6 +155,7 @@ public class User
         {
             connected = false;
             socket.close();
+            poison = true;
         }
         catch(IOException e)
         {
@@ -109,12 +175,17 @@ public class User
     
     public void move(double deltaTime)
     {
+        /*
         Vector2D acceleration = new Vector2D(accelerationX, accelerationY);
         Vector2D deltaV = acceleration.scalarMult(deltaTime);
         velocity = velocity.plus(deltaV);
         if(velocity.length() > MAX_VELOCITY)
-            velocity = velocity.unitVector().scalarMult(MAX_VELOCITY);
+            velocity = velocity.unitVector().scalarMult(MAX_VELOCITY);*/
         
+        velocity = new Vector2D(accelerationX, accelerationY);
+        if(velocity.length() > MAX_VELOCITY)
+            velocity = velocity.unitVector().scalarMult(MAX_VELOCITY);
+            
         Vector2D deltaP = velocity.scalarMult(deltaTime);
         position = position.plus(deltaP);
         

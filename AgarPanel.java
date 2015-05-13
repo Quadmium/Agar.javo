@@ -10,6 +10,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.awt.MouseInfo;
 
 public class AgarPanel extends JPanel
 {
@@ -82,34 +83,62 @@ public class AgarPanel extends JPanel
         
         status = "Connected.";
         connecting = false;
-        (new Thread(new GameUpdater())).start();
+        (new Thread(new GameUpdaterIn())).start();
+        (new Thread(new GameUpdaterOut())).start();
     }
     
-    private class GameUpdater implements Runnable
+    private class GameUpdaterIn implements Runnable
     {   
         public void run()
         {
-            double accel = Math.random()+ 0.5;
+            double accel = 5;
             while(true)
             {
                 try{
-                    synchronized(LOCK)
-                    {
-                        if(userData.size() == 0)
-                        {
-                            out.println("");
-                        }
-                        String message = in.readLine();
-                        String[] messageContents = message.split(",");
-                        dataIndex = Integer.parseInt(messageContents[0]);
+                    String message = in.readLine();
+                    String[] messageContents = message.split(",");
+                    dataIndex = Integer.parseInt(messageContents[0]);
+                    synchronized(LOCK){
                         userData = new ArrayList<GameObject>();
                         for(int i=1; i<messageContents.length; i++)
                         {
                             String[] u = messageContents[i].split("\\|");
                             userData.add(new GameObject(u[0], Double.parseDouble(u[1]), Double.parseDouble(u[2])));
                         }
-                        out.println(accel + "," + accel);
-                        AgarPanel.this.repaint();
+                    }
+                    AgarPanel.this.repaint();
+                    Thread.sleep(10);
+                } catch (Exception e) {System.out.println(e);}
+            }
+        }
+    }
+    
+    private class GameUpdaterOut implements Runnable
+    {   
+        public void run()
+        {
+            while(true)
+            {
+                try{
+                    int size = 0;
+                    synchronized(LOCK){
+                        size = userData.size();
+                    }
+                    
+                    if(size == 0)
+                    {
+                        out.println("");
+                    }
+                    else
+                    {
+                        double xPos = MouseInfo.getPointerInfo().getLocation().getX() - AgarPanel.this.getLocationOnScreen().getX();
+                        double yPos = MouseInfo.getPointerInfo().getLocation().getY() - AgarPanel.this.getLocationOnScreen().getY();
+                        
+                        Vector2D acceleration;
+                        synchronized(LOCK){
+                            acceleration = new Vector2D(xPos - userData.get(dataIndex).getX(), yPos - userData.get(dataIndex).getY());
+                        }
+                        out.println(acceleration.getX() + "," + acceleration.getY());
                     }
                     Thread.sleep(10);
                 } catch (Exception e) {System.out.println(e);}

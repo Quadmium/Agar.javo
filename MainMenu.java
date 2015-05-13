@@ -12,10 +12,11 @@ public class MainMenu
     private AgarPanel agar;
     private JFrame frame;
     private JList centerList;
-    private Server x = new Server();
     
     public static void main(String arg[])
     {
+        if(true)
+            new Server();
         MainMenu instance = new MainMenu();
     }
     
