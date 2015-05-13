@@ -13,7 +13,7 @@ import java.awt.Color;
  */
 public class User
 {
-    private static final int USER_THROTTLE = 10;
+    private static final int USER_THROTTLE = 100;
     private int MAX_VELOCITY = 30;
     private Socket socket;
     private boolean connected;
@@ -124,7 +124,7 @@ public class User
                         accelerationX = Double.parseDouble(message.split(",")[0]);
                         accelerationY = Double.parseDouble(message.split(",")[1]);
                     }
-                    Thread.sleep(USER_THROTTLE);
+                    Thread.sleep(1);
                 }
                 catch(Exception e)
                 {
@@ -209,14 +209,7 @@ public class User
     }
     
     public void move(double deltaTime)
-    {
-        /*
-        Vector2D acceleration = new Vector2D(accelerationX, accelerationY);
-        Vector2D deltaV = acceleration.scalarMult(deltaTime);
-        velocity = velocity.plus(deltaV);
-        if(velocity.length() > MAX_VELOCITY)
-            velocity = velocity.unitVector().scalarMult(MAX_VELOCITY);*/
-        
+    {   
         velocity = new Vector2D(accelerationX, accelerationY);
         if(velocity.length() > MAX_VELOCITY)
             velocity = velocity.unitVector().scalarMult(MAX_VELOCITY);

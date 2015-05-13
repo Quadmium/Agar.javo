@@ -24,12 +24,15 @@ public class AgarPanel extends JPanel
     private MainMenu parent;
     private Socket socket;
     private ArrayList<GameObject> userData = new ArrayList<GameObject>();
+    private ArrayList<GameObject> lastUserData = new ArrayList<GameObject>();
     private final Object LOCK = new Object();
     private volatile int dataIndex = -1;
     private PrintWriter out;
     private BufferedReader in;
     private volatile boolean willBroadcastName = false;
     private volatile boolean willBroadcastColor = false;
+    private volatile double lastUpdate = System.nanoTime();
+    private volatile double secondToLastUpdate = System.nanoTime()-10;
     
     public AgarPanel(String ip, String name, Color playerColor, MainMenu parent)
     {
@@ -69,15 +72,32 @@ public class AgarPanel extends JPanel
             g.setFont(f);
             synchronized(LOCK)
             {
+                int index = 0;
                 for(GameObject u : userData)
                 {
+                    Vector2D positionU = computeDeltaP(new Vector2D(u.getX(), u.getY()), (System.nanoTime() - lastUpdate) / 1000000000.0, index);
                     g.setColor(u.getColor());
-                    g.fillArc((int)u.getX(), (int)u.getY(), 10, 10, 0, 360);
+                    g.fillArc((int)positionU.getX(), (int)positionU.getY(), 10, 10, 0, 360);
                     g.setColor(Color.BLACK);
-                    g.drawString(u.getName(), (int)u.getX(), (int)u.getY() + 25);
+                    g.drawString(u.getName(), (int)positionU.getX(), (int)positionU.getY() + 25);
+                    index++;
                 }
             }
         }
+    }
+    
+    private Vector2D computeDeltaP(Vector2D position, double deltaTime, int index)
+    {
+        if(lastUserData == null || lastUserData.size() == 0 || 
+           !lastUserData.get(index).getName().equals(userData.get(index).getName()))
+            return position;
+        
+        Vector2D dP = position.minus(new Vector2D(lastUserData.get(index).getX(), lastUserData.get(index).getY()));
+        double dT = (lastUpdate - secondToLastUpdate) / 1000000000.0;
+        Vector2D velocity = dP.scalarMult(1.0/dT);
+        
+        Vector2D predictedDP = velocity.scalarMult(deltaTime);
+        return position.plus(predictedDP);
     }
     
     public void connect()
@@ -98,6 +118,21 @@ public class AgarPanel extends JPanel
         connecting = false;
         (new Thread(new GameUpdaterIn())).start();
         (new Thread(new GameUpdaterOut())).start();
+        (new Thread(new Repainter())).start();
+    }
+    
+    private class Repainter implements Runnable
+    {
+        public void run()
+        {
+            while(true)
+            {
+                try {
+                    AgarPanel.this.repaint();
+                    Thread.sleep(33);
+                } catch(Exception e){}
+            }
+        }
     }
     
     private class GameUpdaterIn implements Runnable
@@ -122,6 +157,7 @@ public class AgarPanel extends JPanel
                         String[] messageContents = message.split(",");
                         dataIndex = Integer.parseInt(messageContents[0]);
                         synchronized(LOCK){
+                            lastUserData = userData;
                             userData = new ArrayList<GameObject>();
                             for(int i=1; i<messageContents.length; i++)
                             {
@@ -129,9 +165,10 @@ public class AgarPanel extends JPanel
                                 userData.add(new GameObject(u[0], Double.parseDouble(u[1]), Double.parseDouble(u[2]), GameConstants.stringToColor(u[3])));
                             }
                         }
-                        AgarPanel.this.repaint();
+                        secondToLastUpdate = lastUpdate;
+                        lastUpdate = System.nanoTime();
                     }
-                    Thread.sleep(10);
+                    Thread.sleep(1);
                 } catch (Exception e) {System.out.println(e);}
             }
         }
@@ -165,7 +202,7 @@ public class AgarPanel extends JPanel
                         }
                         out.println(acceleration.getX() + "," + acceleration.getY());
                     }
-                    Thread.sleep(10);
+                    Thread.sleep(100);
                 } catch (Exception e) {System.out.println(e);}
             }
         }
