@@ -6,6 +6,7 @@ import java.io.PrintWriter;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.awt.Color;
 
 /**
  * This object handles the execution for a single user.
@@ -18,20 +19,23 @@ public class User
     private boolean connected;
     private InputHandler inputHandler;
     private OutputHandler outputHandler;
-    private int dataIndex;
-    private volatile ArrayList<GameObject> userData;
-    private String name = "";
-    private boolean receivedNameRequest = false;
-    private boolean poison = false;
+    private volatile int dataIndex;
+    private ArrayList<GameObject> userData;
+    private volatile String name = "";
+    private volatile boolean receivedNameRequest = false;
+    private volatile boolean receivedColorRequest = false;
+    private volatile boolean poison = false;
+    private volatile Color playerColor = Color.BLACK;
     
-    private Vector2D position = new Vector2D(200.0, 200.0);
+    private Vector2D position;
     private Vector2D velocity = new Vector2D();
     private volatile double accelerationX = 0.0;
     private volatile double accelerationY = 0.0;
     private volatile long lastMessage = System.nanoTime();
-    private final double TIMEOUT = 5.0;
+    private final double TIMEOUT = 2.0;
+    private final Object LOCK;
     
-    public User(Socket newSocket, ArrayList<GameObject> userData)
+    public User(Socket newSocket, ArrayList<GameObject> userData, Object LOCK)
     {
         // Set properties
         socket = newSocket;
@@ -41,10 +45,11 @@ public class User
         outputHandler = new OutputHandler();
         outputHandler.start();
         this.userData = userData;
+        this.LOCK = LOCK;
         
-        userData.add(new GameObject(name, 200.0, 200.0));
+        position = new Vector2D(Math.random() * GameConstants.BOARD_WIDTH, Math.random() * GameConstants.BOARD_HEIGHT);
+        userData.add(new GameObject(name, position.getX(), position.getY(), playerColor));
         dataIndex = userData.size() - 1;
-        
         (new Thread(new DisconnectWatcher(this))).start();
     }
     
@@ -99,8 +104,20 @@ public class User
                     if(message.startsWith("NAME "))
                     {
                         name = message.substring(5);
-                        userData.get(dataIndex).setName(name);
+                        synchronized(LOCK)
+                        {
+                            userData.get(dataIndex).setName(name);
+                        }
                         receivedNameRequest = true;
+                    }
+                    else if(message.startsWith("COLOR "))
+                    {
+                        playerColor = GameConstants.stringToColor(message.substring(6));
+                        synchronized(LOCK)
+                        {
+                            userData.get(dataIndex).setColor(playerColor);
+                        }
+                        receivedColorRequest = true;
                     }
                     else if(message.length() > 0)
                     {
@@ -142,6 +159,10 @@ public class User
                     if(!receivedNameRequest)
                     {
                         out.println("NAME");
+                    }
+                    else if(!receivedColorRequest)
+                    {
+                        out.println("COLOR");
                     }
                     else
                     {
@@ -217,7 +238,7 @@ public class User
         String result = "" + dataIndex + ",";
         for(GameObject userObj : userData)
         {
-            result += userObj.getName() + "|" + userObj.getX() + "|" + userObj.getY() + ",";
+            result += userObj.getName() + "|" + userObj.getX() + "|" + userObj.getY() + "|" + GameConstants.colorToString(userObj.getColor()) + ",";
         }
         result = result.substring(0, result.length()-1);
         return result;

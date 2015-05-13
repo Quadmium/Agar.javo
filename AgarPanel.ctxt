@@ -1,6 +1,6 @@
 #BlueJ class context
-comment0.params=ip\ name\ parent
-comment0.target=AgarPanel(java.lang.String,\ java.lang.String,\ MainMenu)
+comment0.params=ip\ name\ playerColor\ parent
+comment0.target=AgarPanel(java.lang.String,\ java.lang.String,\ java.awt.Color,\ MainMenu)
 comment1.params=g
 comment1.target=void\ paintComponent(java.awt.Graphics)
 comment2.params=

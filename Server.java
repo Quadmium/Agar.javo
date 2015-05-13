@@ -15,15 +15,15 @@ public class Server
     private InetAddress hostAddress;
     private Socket socket;
     private ArrayList<User> users = new ArrayList<User>();
-    private volatile ArrayList<GameObject> userData = new ArrayList<GameObject>();
-    private volatile ArrayList<GameObject> boardData = new ArrayList<GameObject>();
+    private ArrayList<GameObject> userData = new ArrayList<GameObject>();
+    private ArrayList<GameObject> boardData = new ArrayList<GameObject>();
     private final Object LOCK = new Object();
     
     public Server()
     {
         try {
-            hostAddress = InetAddress.getLocalHost();
-        } catch (UnknownHostException e) {System.out.println(e); return;}
+           hostAddress = InetAddress.getLocalHost();
+        } catch (Exception e) {System.out.println(e); return;}
         
         try{
             serverSocket = new ServerSocket(PORT, 0, hostAddress);
@@ -73,7 +73,7 @@ public class Server
                 catch(IOException e) {System.out.println(e);}
                 System.out.println("Client "+socket+" has connected.");
                 synchronized(LOCK) {
-                    users.add(new User(socket, userData));
+                    users.add(new User(socket, userData, LOCK));
                 }
                 try {
                     Thread.sleep(CLIENTADDER_THROTTLE);

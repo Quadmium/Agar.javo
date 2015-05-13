@@ -11,6 +11,8 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.awt.MouseInfo;
+import java.awt.Color;
+import java.lang.reflect.Field;
 
 public class AgarPanel extends JPanel
 {
@@ -18,6 +20,7 @@ public class AgarPanel extends JPanel
     private String ip;
     private String status = "Waiting...";
     private String name;
+    private Color playerColor;
     private MainMenu parent;
     private Socket socket;
     private ArrayList<GameObject> userData = new ArrayList<GameObject>();
@@ -25,14 +28,16 @@ public class AgarPanel extends JPanel
     private volatile int dataIndex = -1;
     private PrintWriter out;
     private BufferedReader in;
-    private boolean willBroadcastName = false;
+    private volatile boolean willBroadcastName = false;
+    private volatile boolean willBroadcastColor = false;
     
-    public AgarPanel(String ip, String name, MainMenu parent)
+    public AgarPanel(String ip, String name, Color playerColor, MainMenu parent)
     {
         super();
         this.ip = ip;
         this.parent = parent;
         this.name = name;
+        this.playerColor = playerColor;
     }
     
     @Override
@@ -60,13 +65,15 @@ public class AgarPanel extends JPanel
         }
         else
         {
-            f = new Font("Arial",Font.PLAIN,12);
+            f = new Font("Arial",Font.BOLD,12);
             g.setFont(f);
             synchronized(LOCK)
             {
                 for(GameObject u : userData)
                 {
+                    g.setColor(u.getColor());
                     g.fillArc((int)u.getX(), (int)u.getY(), 10, 10, 0, 360);
+                    g.setColor(Color.BLACK);
                     g.drawString(u.getName(), (int)u.getX(), (int)u.getY() + 25);
                 }
             }
@@ -106,6 +113,10 @@ public class AgarPanel extends JPanel
                     {
                         willBroadcastName = true;
                     }
+                    else if(message.equals("COLOR"))
+                    {
+                        willBroadcastColor = true;
+                    }
                     else
                     {
                         String[] messageContents = message.split(",");
@@ -115,7 +126,7 @@ public class AgarPanel extends JPanel
                             for(int i=1; i<messageContents.length; i++)
                             {
                                 String[] u = messageContents[i].split("\\|");
-                                userData.add(new GameObject(u[0], Double.parseDouble(u[1]), Double.parseDouble(u[2])));
+                                userData.add(new GameObject(u[0], Double.parseDouble(u[1]), Double.parseDouble(u[2]), GameConstants.stringToColor(u[3])));
                             }
                         }
                         AgarPanel.this.repaint();
@@ -138,7 +149,12 @@ public class AgarPanel extends JPanel
                         out.println("NAME " + name);
                         willBroadcastName = false;
                     }
-                    else
+                    else if(willBroadcastColor)
+                    {
+                        out.println("COLOR " + GameConstants.colorToString(playerColor));
+                        willBroadcastColor = false;
+                    }
+                    else if(dataIndex != -1 && userData.size() > 0)
                     {
                         double xPos = MouseInfo.getPointerInfo().getLocation().getX() - AgarPanel.this.getLocationOnScreen().getX();
                         double yPos = MouseInfo.getPointerInfo().getLocation().getY() - AgarPanel.this.getLocationOnScreen().getY();

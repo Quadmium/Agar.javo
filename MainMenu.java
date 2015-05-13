@@ -80,7 +80,7 @@ public class MainMenu
     {
         String ip = (String)centerList.getSelectedValue();
         
-        agar = new AgarPanel(ip, nameField.getText(), this);
+        agar = new AgarPanel(ip, nameField.getText(), GameConstants.ALLOWED_COLORS[(int)(Math.random()*GameConstants.ALLOWED_COLORS.length)], this);
         selectionPanel.setVisible(false);
         frame.add(agar);
         frame.setResizable(false);
