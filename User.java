@@ -21,6 +21,7 @@ public class User
     private int dataIndex;
     private volatile ArrayList<GameObject> userData;
     private String name = "";
+    private boolean receivedNameRequest = false;
     private boolean poison = false;
     
     private Vector2D position = new Vector2D(200.0, 200.0);
@@ -95,7 +96,13 @@ public class User
                 {
                     String message = in.readLine();
                     lastMessage = System.nanoTime();
-                    if(message.length() > 0)
+                    if(message.startsWith("NAME "))
+                    {
+                        name = message.substring(5);
+                        userData.get(dataIndex).setName(name);
+                        receivedNameRequest = true;
+                    }
+                    else if(message.length() > 0)
                     {
                         accelerationX = Double.parseDouble(message.split(",")[0]);
                         accelerationY = Double.parseDouble(message.split(",")[1]);
@@ -104,7 +111,7 @@ public class User
                 }
                 catch(Exception e)
                 {
-                    System.out.println(toString()+" has input interrupted.");
+                    //System.out.println(toString()+" has input interrupted.");
                 }
             }
         }
@@ -132,12 +139,19 @@ public class User
                     return;
                 try
                 {
-                    out.println(getBoardData());
+                    if(!receivedNameRequest)
+                    {
+                        out.println("NAME");
+                    }
+                    else
+                    {
+                        out.println(getBoardData());
+                    }
                     Thread.sleep(USER_THROTTLE);
                 }
                 catch(Exception e)
                 {
-                    System.out.println(toString()+" has input interrupted.");
+                    //System.out.println(toString()+" has input interrupted.");
                 }
             }
         }

@@ -15,8 +15,9 @@ import java.awt.MouseInfo;
 public class AgarPanel extends JPanel
 {
     private boolean connecting = true;
-    private String ip = "";
+    private String ip;
     private String status = "Waiting...";
+    private String name;
     private MainMenu parent;
     private Socket socket;
     private ArrayList<GameObject> userData = new ArrayList<GameObject>();
@@ -24,12 +25,14 @@ public class AgarPanel extends JPanel
     private volatile int dataIndex = -1;
     private PrintWriter out;
     private BufferedReader in;
+    private boolean willBroadcastName = false;
     
-    public AgarPanel(String ip, MainMenu parent)
+    public AgarPanel(String ip, String name, MainMenu parent)
     {
         super();
         this.ip = ip;
         this.parent = parent;
+        this.name = name;
     }
     
     @Override
@@ -57,11 +60,14 @@ public class AgarPanel extends JPanel
         }
         else
         {
+            f = new Font("Arial",Font.PLAIN,12);
+            g.setFont(f);
             synchronized(LOCK)
             {
                 for(GameObject u : userData)
                 {
                     g.fillArc((int)u.getX(), (int)u.getY(), 10, 10, 0, 360);
+                    g.drawString(u.getName(), (int)u.getX(), (int)u.getY() + 25);
                 }
             }
         }
@@ -96,17 +102,24 @@ public class AgarPanel extends JPanel
             {
                 try{
                     String message = in.readLine();
-                    String[] messageContents = message.split(",");
-                    dataIndex = Integer.parseInt(messageContents[0]);
-                    synchronized(LOCK){
-                        userData = new ArrayList<GameObject>();
-                        for(int i=1; i<messageContents.length; i++)
-                        {
-                            String[] u = messageContents[i].split("\\|");
-                            userData.add(new GameObject(u[0], Double.parseDouble(u[1]), Double.parseDouble(u[2])));
-                        }
+                    if(message.equals("NAME"))
+                    {
+                        willBroadcastName = true;
                     }
-                    AgarPanel.this.repaint();
+                    else
+                    {
+                        String[] messageContents = message.split(",");
+                        dataIndex = Integer.parseInt(messageContents[0]);
+                        synchronized(LOCK){
+                            userData = new ArrayList<GameObject>();
+                            for(int i=1; i<messageContents.length; i++)
+                            {
+                                String[] u = messageContents[i].split("\\|");
+                                userData.add(new GameObject(u[0], Double.parseDouble(u[1]), Double.parseDouble(u[2])));
+                            }
+                        }
+                        AgarPanel.this.repaint();
+                    }
                     Thread.sleep(10);
                 } catch (Exception e) {System.out.println(e);}
             }
@@ -120,14 +133,10 @@ public class AgarPanel extends JPanel
             while(true)
             {
                 try{
-                    int size = 0;
-                    synchronized(LOCK){
-                        size = userData.size();
-                    }
-                    
-                    if(size == 0)
+                    if(willBroadcastName)
                     {
-                        out.println("");
+                        out.println("NAME " + name);
+                        willBroadcastName = false;
                     }
                     else
                     {

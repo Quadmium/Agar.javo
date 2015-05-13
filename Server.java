@@ -109,7 +109,7 @@ public class Server
                     }
                 }
                 try {
-                    Thread.sleep(200);
+                    Thread.sleep(CLIENTADDER_THROTTLE);
                 } catch(InterruptedException e) {System.out.println(e);}
             }
         }

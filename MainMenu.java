@@ -41,7 +41,7 @@ public class MainMenu
         panel.setLayout(new BorderLayout());
         
             JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-                JTextField nameField = new JTextField();
+                nameField = new JTextField();
                     nameField.setColumns(15);
                 GhostText nameText = new GhostText(nameField, "Enter a name");
                 topPanel.add(nameField);
@@ -80,7 +80,7 @@ public class MainMenu
     {
         String ip = (String)centerList.getSelectedValue();
         
-        agar = new AgarPanel(ip, this);
+        agar = new AgarPanel(ip, nameField.getText(), this);
         selectionPanel.setVisible(false);
         frame.add(agar);
         frame.setResizable(false);
