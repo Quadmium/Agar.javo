@@ -1,8 +1,0 @@
-#BlueJ class context
-comment0.params=
-comment0.target=Room()
-comment0.text=\r\n\ Creates\ a\ new\ room\ for\ clients\ to\ connect\ to.\r\n
-comment1.params=
-comment1.target=void\ run()
-comment1.text=\r\n\ Starts\ the\ client\ accepting\ process.\r\n
-numComments=2

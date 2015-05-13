@@ -1,6 +1,11 @@
 import java.net.Socket;
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.PrintWriter;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
 
 /**
  * This object handles the execution for a single user.
@@ -12,27 +17,41 @@ public class User
     private Socket socket;
     private boolean connected;
     private Inport inport;
+    private int dataIndex;
+    private volatile ArrayList<GameObject> userData;
 
-    private Vector2D position = new Vector2D();
+    private Vector2D position = new Vector2D(200.0, 200.0);
     private Vector2D velocity = new Vector2D();
-    private Vector2D acceleration = new Vector2D();
-
-    /**
-     * Handles all incoming data from this user.
-     */
+    private volatile double accelerationX = 0.0;
+    private volatile double accelerationY = 0.0;
+    
+    public User(Socket newSocket, ArrayList<GameObject> userData)
+    {
+        // Set properties
+        socket = newSocket;
+        connected = true;
+        // Get input
+        inport = new Inport();
+        inport.start();
+        this.userData = userData;
+        
+        userData.add(new GameObject("", 200.0, 200.0));
+        dataIndex = userData.size() - 1;
+    }
+    
     private class Inport extends Thread
     {
-        private ObjectInputStream in;
+        private BufferedReader in;
+        private PrintWriter out;
         public void run()
         {
-            // Open the InputStream
-            try
-            {
-                in = new ObjectInputStream(socket.getInputStream());
+            try {
+                in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                out = new PrintWriter(socket.getOutputStream(), true);
             }
             catch(IOException e)
             {
-                System.out.println("Could not get input stream from "+toString());
+                System.out.println("Could not get stream from "+toString());
                 return;
             }
             // Announce
@@ -40,9 +59,15 @@ public class User
             // Enter process loop
             while(true)
             {
-                move(USER_THROTTLE);
                 try
                 {
+                    String message = in.readLine();
+                    if(message.length() > 0)
+                    {
+                        accelerationX = Double.parseDouble(message.split(",")[0]);
+                        accelerationY = Double.parseDouble(message.split(",")[1]);
+                    }
+                    out.println(getBoardData());
                     Thread.sleep(USER_THROTTLE);
                 }
                 catch(Exception e)
@@ -52,34 +77,12 @@ public class User
             }
         }
     }
-    /**
-     * Creates a new Client User with the socket from the newly connected client.
-     *
-     * @param newSocket  The socket from the connected client.
-     */
-    public User(Socket newSocket)
-    {
-        // Set properties
-        socket = newSocket;
-        connected = true;
-        // Get input
-        inport = new Inport();
-        inport.start();
-    }
-
-    /**
-     * Gets the connection status of this user.
-     *
-     * @return  If this user is still connected.
-     */
+    
     public boolean isConnected()
     {
         return connected;
     }
-
-    /**
-     * Purges this user from connection.
-     */
+    
     public void purge()
     {
         // Close everything
@@ -93,12 +96,7 @@ public class User
             System.out.println("Could not purge "+socket+".");
         }
     }
-
-    /**
-     * Returns the String representation of this user.
-     *
-     * @return  A string representation.
-     */
+    
     public String toString()
     {
         return new String(socket.toString());
@@ -111,6 +109,7 @@ public class User
     
     public void move(double deltaTime)
     {
+        Vector2D acceleration = new Vector2D(accelerationX, accelerationY);
         Vector2D deltaV = acceleration.scalarMult(deltaTime);
         velocity = velocity.plus(deltaV);
         if(velocity.length() > MAX_VELOCITY)
@@ -118,6 +117,25 @@ public class User
         
         Vector2D deltaP = velocity.scalarMult(deltaTime);
         position = position.plus(deltaP);
+        
+        userData.get(dataIndex).setX(position.getX());
+        userData.get(dataIndex).setY(position.getY());
+    }
+    
+    public void setIndex(int index)
+    {
+        this.dataIndex = index;
+    }
+    
+    private String getBoardData()
+    {
+        String result = "" + dataIndex + ",";
+        for(GameObject userObj : userData)
+        {
+            result += userObj.getName() + "|" + userObj.getX() + "|" + userObj.getY() + ",";
+        }
+        result = result.substring(0, result.length()-1);
+        return result;
     }
 }
 
