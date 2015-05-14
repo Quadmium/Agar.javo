@@ -27,7 +27,7 @@ public class User
     private volatile boolean receivedColorRequest = false;
     private volatile boolean poison = false;
     private volatile Color playerColor = Color.BLACK;
-    private double radius = 10.0;//GameConstants.INITIAL_RADIUS;//(int)(Math.random() * 10) + 1;//GameConstants.INITIAL_RADIUS;
+    private double radius = 1.0;//GameConstants.INITIAL_RADIUS;//(int)(Math.random() * 10) + 1;//GameConstants.INITIAL_RADIUS;
     
     private Vector2D position;
     private Vector2D velocity = new Vector2D();
@@ -227,6 +227,8 @@ public class User
         {
             //maxV = slope * (radius - GameConstants.INITIAL_RADIUS) + MAX_VELOCITY;
             maxV = k * Math.pow(radius, n);
+            radius += deltaTime * 0.2;
+            userData.get(dataIndex).setRadius(radius);
         }
         
         velocity = new Vector2D(velocityX, velocityY);

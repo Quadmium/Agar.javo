@@ -12,7 +12,6 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.awt.MouseInfo;
 import java.awt.Color;
-import java.lang.reflect.Field;
 
 public class AgarPanel extends JPanel
 {
@@ -38,9 +37,12 @@ public class AgarPanel extends JPanel
     private volatile double secondToLastUpdate = System.nanoTime()-10;
     private volatile double lastFrameRendered = System.nanoTime();
     
+    //TODO: Kill threads on agarPanel end
+    
     public AgarPanel(String ip, String name, Color playerColor, MainMenu parent)
     {
         super();
+        setDoubleBuffered(true);
         this.ip = ip;
         this.parent = parent;
         this.name = name;
@@ -54,9 +56,10 @@ public class AgarPanel extends JPanel
         Dimension d = getSize();
         Font f = new Font("Arial",Font.BOLD,24);
         g.setFont(f);
-        ((Graphics2D)g).setRenderingHint(
-            RenderingHints.KEY_TEXT_ANTIALIASING,
-            RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        ((Graphics2D)g).setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+RenderingHints.VALUE_ANTIALIAS_ON);
+        ((Graphics2D)g).setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+RenderingHints.VALUE_INTERPOLATION_BILINEAR);
         
         if(connecting)
         {
@@ -81,10 +84,10 @@ public class AgarPanel extends JPanel
             g.setColor(Color.LIGHT_GRAY);
             double firstGridCol = ((boundRadius - estimatedPlayerPosition_unshifted.getX()) % 2.0) * scale;
             double firstGridRow = ((boundRadius - estimatedPlayerPosition_unshifted.getY()) % 2.0) * scale;
-            for(int i=0; i < boundRadius*2 + 1; i+=2)
+            for(int i=0; i < boundRadius*2 + 2; i+=2)
             {
-                g.fillRect((int)Math.round(firstGridCol + i * scale), 0, 1, (int)GameConstants.BOARD_HEIGHT);
-                g.fillRect(0, (int)Math.round(firstGridRow + i * scale), (int)GameConstants.BOARD_WIDTH, 1);
+                g.fillRect((int)(firstGridCol) + (int)(i * scale), 0, 1, (int)GameConstants.BOARD_HEIGHT);
+                g.fillRect(0, (int)(firstGridRow) + (int)(i * scale), (int)GameConstants.BOARD_WIDTH, 1);
             }
             
             synchronized(LOCK)
@@ -120,6 +123,8 @@ public class AgarPanel extends JPanel
             }
             
             g.setColor(Color.BLACK);
+            f = new Font("Arial",Font.BOLD,12);
+            g.setFont(f);
             g.drawString("FPS: " + (int)(1/((System.nanoTime() - lastFrameRendered) / 1000000000.0))
                             + " (" + (int)position.getX() + "," + (int)position.getY() + ")", 10, 
                             (int)GameConstants.BOARD_HEIGHT - g.getFontMetrics().getHeight());
@@ -140,7 +145,7 @@ public class AgarPanel extends JPanel
     
     private Vector2D computeDeltaP(Vector2D position, double deltaTime, int index)
     {
-        if(lastUserData == null || lastUserData.size() == 0 || 
+        if(lastUserData == null || userData == null || lastUserData.size() == 0 || userData.size() == 0 ||
            !lastUserData.get(index).getName().equals(userData.get(index).getName()))
             return position;
         

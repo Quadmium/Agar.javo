@@ -33,7 +33,7 @@ public class MainMenu
         frame.add(selectionPanel);
         
         frame.setLocationRelativeTo(null);
-        //frame.setResizable(false);
+        frame.setResizable(false);
         frame.setVisible(true);
     }
     
@@ -87,7 +87,7 @@ public class MainMenu
         frame.getContentPane().setPreferredSize(new Dimension((int)GameConstants.BOARD_WIDTH, (int)GameConstants.BOARD_HEIGHT));
         frame.pack();
         frame.setVisible(true);
-       // frame.setResizable(false);
+        frame.setResizable(false);
         agar.connect();
     }
     
