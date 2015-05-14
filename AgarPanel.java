@@ -110,12 +110,12 @@ RenderingHints.VALUE_INTERPOLATION_BILINEAR);
                     
                     f = new Font("Arial",Font.BOLD,12);
                     g.setFont(f);
-                    int sizeNeeded = SwingUtils.getMaxFittingFontSize(g, f, u.getName(), (int)(u.getRadius() * 2 * scale), (int)(u.getRadius() * 0.5 * scale));
+                    int sizeNeeded = SwingUtils.getMaxFittingFontSize(g, f, u.getName(), (int)(u.getRadius() * 2 * scale), (int)(u.getRadius() * scale));
                     f = new Font("Arial",Font.BOLD,sizeNeeded);
                     g.setFont(f);
                     FontMetrics fm = g.getFontMetrics();
                     x = (int)(shiftedPosition.getX() * scale - fm.stringWidth(u.getName())/2);
-                    y = (int)(shiftedPosition.getY() * scale + fm.getHeight() / 2);
+                    y = (int)(shiftedPosition.getY() * scale + fm.getHeight() / 3.7);
                     
                     SwingUtils.outlineText(g, u.getName(), x, y, Color.BLACK, Color.WHITE);
                     index++;
