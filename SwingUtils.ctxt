@@ -1,4 +1,16 @@
 #BlueJ class context
 comment0.params=component
 comment0.target=javax.swing.JPanel\ center(javax.swing.JComponent)
-numComments=1
+comment1.params=g\ text\ x\ y\ color1\ color2
+comment1.target=void\ outlineText(java.awt.Graphics,\ java.lang.String,\ int,\ int,\ java.awt.Color,\ java.awt.Color)
+comment2.params=p\ distance
+comment2.target=int\ ShiftNorth(int,\ int)
+comment3.params=p\ distance
+comment3.target=int\ ShiftSouth(int,\ int)
+comment4.params=p\ distance
+comment4.target=int\ ShiftEast(int,\ int)
+comment5.params=p\ distance
+comment5.target=int\ ShiftWest(int,\ int)
+comment6.params=g\ font\ string\ width\ height
+comment6.target=int\ getMaxFittingFontSize(java.awt.Graphics,\ java.awt.Font,\ java.lang.String,\ int,\ int)
+numComments=7

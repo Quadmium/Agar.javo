@@ -14,7 +14,8 @@ import java.awt.Color;
 public class User
 {
     private static final int USER_THROTTLE = 100;
-    private int MAX_VELOCITY = 30;
+    private static final double MAX_VELOCITY = 6;
+    private static final double MIN_VELOCITY = 0.5;
     private Socket socket;
     private boolean connected;
     private InputHandler inputHandler;
@@ -26,30 +27,31 @@ public class User
     private volatile boolean receivedColorRequest = false;
     private volatile boolean poison = false;
     private volatile Color playerColor = Color.BLACK;
+    private double radius = 10.0;//GameConstants.INITIAL_RADIUS;//(int)(Math.random() * 10) + 1;//GameConstants.INITIAL_RADIUS;
     
     private Vector2D position;
     private Vector2D velocity = new Vector2D();
-    private volatile double accelerationX = 0.0;
-    private volatile double accelerationY = 0.0;
+    private volatile double velocityX = 0.0;
+    private volatile double velocityY = 0.0;
     private volatile long lastMessage = System.nanoTime();
     private final double TIMEOUT = 2.0;
     private final Object LOCK;
+    private final Object LOCK2 = new Object();
     
     public User(Socket newSocket, ArrayList<GameObject> userData, Object LOCK)
     {
         // Set properties
         socket = newSocket;
         connected = true;
+        this.userData = userData;
+        this.LOCK = LOCK;
+        position = new Vector2D(Math.random() * GameConstants.BOARD_WIDTH, Math.random() * GameConstants.BOARD_HEIGHT);
+        userData.add(new GameObject(name, position.getX(), position.getY(), playerColor, radius));
+        dataIndex = userData.size() - 1;
         inputHandler = new InputHandler();
         inputHandler.start();
         outputHandler = new OutputHandler();
         outputHandler.start();
-        this.userData = userData;
-        this.LOCK = LOCK;
-        
-        position = new Vector2D(Math.random() * GameConstants.BOARD_WIDTH, Math.random() * GameConstants.BOARD_HEIGHT);
-        userData.add(new GameObject(name, position.getX(), position.getY(), playerColor));
-        dataIndex = userData.size() - 1;
         (new Thread(new DisconnectWatcher(this))).start();
     }
     
@@ -66,7 +68,7 @@ public class User
         {
             while(true)
             {
-                double lag = (System.nanoTime() - lastMessage) / 1000000000;
+                double lag = (System.nanoTime() - lastMessage) / 1000000000.0;
                 if(lag > TIMEOUT)
                 {
                     user.purge();
@@ -121,8 +123,8 @@ public class User
                     }
                     else if(message.length() > 0)
                     {
-                        accelerationX = Double.parseDouble(message.split(",")[0]);
-                        accelerationY = Double.parseDouble(message.split(",")[1]);
+                        velocityX = Double.parseDouble(message.split(",")[0]);
+                        velocityY = Double.parseDouble(message.split(",")[1]);
                     }
                     Thread.sleep(1);
                 }
@@ -206,17 +208,43 @@ public class User
     public void setPos(double x, double y)
     {
         position = new Vector2D(x, y);
+        userData.get(dataIndex).setX(position.getX());
+        userData.get(dataIndex).setY(position.getY());
     }
     
     public void move(double deltaTime)
     {   
-        velocity = new Vector2D(accelerationX, accelerationY);
-        if(velocity.length() > MAX_VELOCITY)
+        //double slope = (MIN_VELOCITY - MAX_VELOCITY) / (GameConstants.FINAL_RADIUS - GameConstants.INITIAL_RADIUS);
+        double INITIAL_RADIUS = 1.0; //Do not change
+        double INITIAL_VELOCITY = 6.0;
+        double FINAL_RADIUS = 10.0;
+        double FINAL_VELOCITY = 3.0;
+        double k = INITIAL_VELOCITY;
+        double n = Math.log(FINAL_VELOCITY / INITIAL_VELOCITY) / Math.log(FINAL_RADIUS);
+        
+        double maxV;
+        synchronized(LOCK2)
+        {
+            //maxV = slope * (radius - GameConstants.INITIAL_RADIUS) + MAX_VELOCITY;
+            maxV = k * Math.pow(radius, n);
+        }
+        
+        velocity = new Vector2D(velocityX, velocityY);
+        if(velocity.length() > maxV)
             velocity = velocity.unitVector().scalarMult(MAX_VELOCITY);
             
         Vector2D deltaP = velocity.scalarMult(deltaTime);
         position = position.plus(deltaP);
         
+        if(position.getX() > GameConstants.BOARD_WIDTH)
+            position = new Vector2D(GameConstants.BOARD_WIDTH, position.getY());
+        if(position.getY() > GameConstants.BOARD_WIDTH)
+            position = new Vector2D(position.getX(), GameConstants.BOARD_WIDTH);
+        if(position.getX() < 0)
+            position = new Vector2D(0, position.getY());
+        if(position.getY() < 0)
+            position = new Vector2D(position.getX(), 0);
+            
         userData.get(dataIndex).setX(position.getX());
         userData.get(dataIndex).setY(position.getY());
     }
@@ -231,7 +259,8 @@ public class User
         String result = "" + dataIndex + ",";
         for(GameObject userObj : userData)
         {
-            result += userObj.getName() + "|" + userObj.getX() + "|" + userObj.getY() + "|" + GameConstants.colorToString(userObj.getColor()) + ",";
+            result += userObj.getName() + "|" + userObj.getX() + "|" + userObj.getY() + "|" 
+                        + GameConstants.colorToString(userObj.getColor()) + "|" + userObj.getRadius() + ",";
         }
         result = result.substring(0, result.length()-1);
         return result;

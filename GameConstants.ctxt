@@ -3,4 +3,6 @@ comment0.params=color
 comment0.target=java.lang.String\ colorToString(java.awt.Color)
 comment1.params=color
 comment1.target=java.awt.Color\ stringToColor(java.lang.String)
-numComments=2
+comment2.params=radius
+comment2.target=double\ getBoundRadius(double)
+numComments=3

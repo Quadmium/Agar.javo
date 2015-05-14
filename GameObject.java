@@ -3,15 +3,26 @@ import java.awt.Color;
 public class GameObject
 {
     private String name;
-    private double x, y;
+    private double x, y, radius;
     private Color playerColor;
     
-    public GameObject(String name, double x, double y, Color playerColor)
+    public GameObject(String name, double x, double y, Color playerColor, double radius)
     {
         this.name = name;
         this.x = x;
         this.y = y;
         this.playerColor = playerColor;
+        this.radius = radius;
+    }
+    
+    public double getRadius()
+    {
+        return radius;
+    }
+    
+    public void setRadius(double radius)
+    {
+        this.radius = radius;
     }
     
     public Color getColor()

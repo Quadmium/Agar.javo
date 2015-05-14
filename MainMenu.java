@@ -3,6 +3,7 @@ import java.awt.Component;
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.awt.Dimension;
 
 public class MainMenu
 {
@@ -24,7 +25,7 @@ public class MainMenu
     {
         try{UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());}catch(Exception e){}
         frame = new JFrame("Agar.javo");
-        frame.setSize(500, 500);
+        frame.setSize((int)GameConstants.BOARD_WIDTH, (int)GameConstants.BOARD_HEIGHT);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         
         selectionPanel = new JPanel();
@@ -32,7 +33,7 @@ public class MainMenu
         frame.add(selectionPanel);
         
         frame.setLocationRelativeTo(null);
-        frame.setResizable(false);
+        //frame.setResizable(false);
         frame.setVisible(true);
     }
     
@@ -80,10 +81,13 @@ public class MainMenu
     {
         String ip = (String)centerList.getSelectedValue();
         
-        agar = new AgarPanel(ip, nameField.getText(), GameConstants.ALLOWED_COLORS[(int)(Math.random()*GameConstants.ALLOWED_COLORS.length)], this);
+        agar = new AgarPanel(ip, nameField.getText().equals("Enter a name") ? "" : nameField.getText(), GameConstants.ALLOWED_COLORS[(int)(Math.random()*GameConstants.ALLOWED_COLORS.length)], this);
         selectionPanel.setVisible(false);
         frame.add(agar);
-        frame.setResizable(false);
+        frame.getContentPane().setPreferredSize(new Dimension((int)GameConstants.BOARD_WIDTH, (int)GameConstants.BOARD_HEIGHT));
+        frame.pack();
+        frame.setVisible(true);
+       // frame.setResizable(false);
         agar.connect();
     }
     
