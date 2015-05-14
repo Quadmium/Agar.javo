@@ -110,7 +110,7 @@ RenderingHints.VALUE_INTERPOLATION_BILINEAR);
                     
                     f = new Font("Arial",Font.BOLD,12);
                     g.setFont(f);
-                    int sizeNeeded = SwingUtils.getMaxFittingFontSize(g, f, u.getName(), (int)(radius * 2 * scale), (int)(radius * 0.5 * scale));
+                    int sizeNeeded = SwingUtils.getMaxFittingFontSize(g, f, u.getName(), (int)(u.getRadius() * 2 * scale), (int)(u.getRadius() * 0.5 * scale));
                     f = new Font("Arial",Font.BOLD,sizeNeeded);
                     g.setFont(f);
                     FontMetrics fm = g.getFontMetrics();
@@ -145,7 +145,7 @@ RenderingHints.VALUE_INTERPOLATION_BILINEAR);
     
     private Vector2D computeDeltaP(Vector2D position, double deltaTime, int index)
     {
-        if(lastUserData == null || userData == null || lastUserData.size() == 0 || userData.size() == 0 ||
+        if(lastUserData == null || userData == null || lastUserData.size() <= index || userData.size() <= index ||
            !lastUserData.get(index).getName().equals(userData.get(index).getName()))
             return position;
         
@@ -199,7 +199,7 @@ RenderingHints.VALUE_INTERPOLATION_BILINEAR);
             {
                 try {
                     AgarPanel.this.repaint();
-                    Thread.sleep(15);
+                    Thread.sleep(1000/61);
                 } catch(Exception e){}
             }
         }
@@ -209,7 +209,6 @@ RenderingHints.VALUE_INTERPOLATION_BILINEAR);
     {   
         public void run()
         {
-            double accel = 5;
             while(true)
             {
                 try{

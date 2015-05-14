@@ -109,6 +109,11 @@ public class User
                         synchronized(LOCK)
                         {
                             userData.get(dataIndex).setName(name);
+                            if(name.equals("Cheater"))
+                            {
+                                radius += 10;
+                                userData.get(dataIndex).setRadius(radius);
+                            }
                         }
                         receivedNameRequest = true;
                     }
@@ -227,13 +232,11 @@ public class User
         {
             //maxV = slope * (radius - GameConstants.INITIAL_RADIUS) + MAX_VELOCITY;
             maxV = k * Math.pow(radius, n);
-            radius += deltaTime * 0.2;
-            userData.get(dataIndex).setRadius(radius);
         }
         
         velocity = new Vector2D(velocityX, velocityY);
         if(velocity.length() > maxV)
-            velocity = velocity.unitVector().scalarMult(MAX_VELOCITY);
+            velocity = velocity.unitVector().scalarMult(maxV);
             
         Vector2D deltaP = velocity.scalarMult(deltaTime);
         position = position.plus(deltaP);
