@@ -170,6 +170,7 @@ RenderingHints.VALUE_INTERPOLATION_BILINEAR);
             try{
                 Thread.sleep(100);
                 socket = new Socket(ip, 40124);
+                socket.setTcpNoDelay(true);
                 out = new PrintWriter(socket.getOutputStream(), 
                          true);
                 in = new BufferedReader(new InputStreamReader(

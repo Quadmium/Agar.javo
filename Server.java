@@ -1,7 +1,4 @@
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
+import java.net.*;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Timer;
@@ -69,6 +66,7 @@ public class Server
                 // Get a client trying to connect
                 try {
                     socket = serverSocket.accept();
+                    socket.setTcpNoDelay(true);
                 }
                 catch(IOException e) {System.out.println(e);}
                 System.out.println("Client "+socket+" has connected.");

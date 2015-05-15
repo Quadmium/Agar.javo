@@ -219,7 +219,6 @@ public class User
     
     public void move(double deltaTime)
     {   
-        //double slope = (MIN_VELOCITY - MAX_VELOCITY) / (GameConstants.FINAL_RADIUS - GameConstants.INITIAL_RADIUS);
         double INITIAL_RADIUS = 1.0; //Do not change
         double INITIAL_VELOCITY = 6.0;
         double FINAL_RADIUS = 10.0;
@@ -230,7 +229,6 @@ public class User
         double maxV;
         synchronized(LOCK2)
         {
-            //maxV = slope * (radius - GameConstants.INITIAL_RADIUS) + MAX_VELOCITY;
             maxV = k * Math.pow(radius, n);
         }
         
@@ -241,14 +239,17 @@ public class User
         Vector2D deltaP = velocity.scalarMult(deltaTime);
         position = position.plus(deltaP);
         
-        if(position.getX() > GameConstants.BOARD_WIDTH)
-            position = new Vector2D(GameConstants.BOARD_WIDTH, position.getY());
-        if(position.getY() > GameConstants.BOARD_WIDTH)
-            position = new Vector2D(position.getX(), GameConstants.BOARD_WIDTH);
-        if(position.getX() < 0)
-            position = new Vector2D(0, position.getY());
-        if(position.getY() < 0)
-            position = new Vector2D(position.getX(), 0);
+        synchronized(LOCK2)
+        {
+            if(position.getX() + radius > GameConstants.BOARD_WIDTH)
+                position = new Vector2D(GameConstants.BOARD_WIDTH - radius, position.getY());
+            if(position.getY() + radius > GameConstants.BOARD_HEIGHT)
+                position = new Vector2D(position.getX(), GameConstants.BOARD_HEIGHT - radius);
+            if(position.getX() - radius < 0)
+                position = new Vector2D(radius, position.getY());
+            if(position.getY() - radius < 0)
+                position = new Vector2D(position.getX(), radius);
+        }
             
         userData.get(dataIndex).setX(position.getX());
         userData.get(dataIndex).setY(position.getY());

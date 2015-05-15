@@ -19,6 +19,7 @@ public class MainMenu
         if(true)
             new Server();
         MainMenu instance = new MainMenu();
+        new MainMenu();
     }
     
     public MainMenu()
