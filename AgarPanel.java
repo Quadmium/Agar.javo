@@ -27,7 +27,6 @@ public class AgarPanel extends JPanel
     private ArrayList<GameObject> userData = new ArrayList<GameObject>();
     private ArrayList<GameObject> lastUserData = new ArrayList<GameObject>();
     private final Object LOCK = new Object();
-    private final Object LOCK2 = new Object();
     private volatile int dataIndex = -1;
     private volatile PrintWriter out;
     private volatile BufferedReader in;
@@ -75,23 +74,22 @@ RenderingHints.VALUE_INTERPOLATION_BILINEAR);
         }
         else if(position != null)
         {
-            double boundRadius = GameConstants.getBoundRadius(radius);
-            double scale = GameConstants.BOARD_WIDTH / (boundRadius*2);
-            Vector2D estimatedPlayerPosition_unshifted = computeDeltaP(position, (System.nanoTime() - lastUpdate) / 1000000000.0, dataIndex);
-            
-            g.setColor(Color.WHITE);
-            g.fillRect(0,0,(int)GameConstants.BOARD_WIDTH,(int)GameConstants.BOARD_HEIGHT);
-            g.setColor(Color.LIGHT_GRAY);
-            double firstGridCol = ((boundRadius - estimatedPlayerPosition_unshifted.getX()) % 2.0) * scale;
-            double firstGridRow = ((boundRadius - estimatedPlayerPosition_unshifted.getY()) % 2.0) * scale;
-            for(int i=0; i < boundRadius*2 + 2; i+=2)
-            {
-                g.fillRect((int)(firstGridCol) + (int)(i * scale), 0, 1, (int)GameConstants.BOARD_HEIGHT);
-                g.fillRect(0, (int)(firstGridRow) + (int)(i * scale), (int)GameConstants.BOARD_WIDTH, 1);
-            }
-            
             synchronized(LOCK)
             {
+                double boundRadius = GameConstants.getBoundRadius(radius);
+                double scale = GameConstants.BOARD_WIDTH / (boundRadius*2);
+                Vector2D estimatedPlayerPosition_unshifted = computeDeltaP(position, (System.nanoTime() - lastUpdate) / 1000000000.0, dataIndex);
+                
+                g.setColor(Color.WHITE);
+                g.fillRect(0,0,(int)GameConstants.BOARD_WIDTH,(int)GameConstants.BOARD_HEIGHT);
+                g.setColor(Color.LIGHT_GRAY);
+                double firstGridCol = ((boundRadius - estimatedPlayerPosition_unshifted.getX()) % 2.0) * scale;
+                double firstGridRow = ((boundRadius - estimatedPlayerPosition_unshifted.getY()) % 2.0) * scale;
+                for(int i=0; i < boundRadius*2 + 2; i+=2)
+                {
+                    g.fillRect((int)(firstGridCol) + (int)(i * scale), 0, 1, (int)GameConstants.BOARD_HEIGHT);
+                    g.fillRect(0, (int)(firstGridRow) + (int)(i * scale), (int)GameConstants.BOARD_WIDTH, 1);
+                }
                 int index = 0;
                 for(GameObject u : userData)
                 {
@@ -103,6 +101,7 @@ RenderingHints.VALUE_INTERPOLATION_BILINEAR);
                     Vector2D estimatedPosition_unshifted = computeDeltaP(uPosition_unshifted, (System.nanoTime() - lastUpdate) / 1000000000.0, index);
                     Vector2D shiftedPosition = new Vector2D(estimatedPosition_unshifted.getX() - (estimatedPlayerPosition_unshifted.getX() - boundRadius), 
                                                               estimatedPosition_unshifted.getY() - (estimatedPlayerPosition_unshifted.getY() - boundRadius));
+                                                              
                     g.setColor(u.getColor());
                     int x = (int)((shiftedPosition.getX() - u.getRadius()) * scale);
                     int y = (int)((shiftedPosition.getY() - u.getRadius()) * scale);
@@ -226,8 +225,6 @@ RenderingHints.VALUE_INTERPOLATION_BILINEAR);
                     {
                         String[] messageContents = message.split(",");
                         dataIndex = Integer.parseInt(messageContents[0]);
-                        double radius = AgarPanel.this.radius;
-                        Vector2D position = AgarPanel.this.position;
                         synchronized(LOCK){
                             lastUserData = userData;
                             userData = new ArrayList<GameObject>();
@@ -237,13 +234,11 @@ RenderingHints.VALUE_INTERPOLATION_BILINEAR);
                                 userData.add(new GameObject(u[0], Double.parseDouble(u[1]), Double.parseDouble(u[2]),
                                                             GameConstants.stringToColor(u[3]), Double.parseDouble(u[4])));
                             }
-                            radius = userData.get(dataIndex).getRadius();
-                            position = new Vector2D(userData.get(dataIndex).getX(), userData.get(dataIndex).getY());
+                            AgarPanel.this.radius = userData.get(dataIndex).getRadius();
+                            AgarPanel.this.position = new Vector2D(userData.get(dataIndex).getX(), userData.get(dataIndex).getY());
+                            secondToLastUpdate = lastUpdate;
+                            lastUpdate = System.nanoTime();
                         }
-                        AgarPanel.this.radius = radius;
-                        AgarPanel.this.position = position;
-                        secondToLastUpdate = lastUpdate;
-                        lastUpdate = System.nanoTime();
                     }
                     Thread.sleep(1);
                 } catch (Exception e) {System.out.println(e);}
