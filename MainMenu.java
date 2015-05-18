@@ -32,7 +32,6 @@ public class MainMenu
         selectionPanel = new JPanel();
         setupComponents(selectionPanel);
         frame.add(selectionPanel);
-        
         frame.setLocationRelativeTo(null);
         frame.setResizable(false);
         frame.setVisible(true);
@@ -82,13 +81,14 @@ public class MainMenu
     {
         String ip = (String)centerList.getSelectedValue();
         
-        agar = new AgarPanel(ip, nameField.getText().equals("Enter a name") ? "" : nameField.getText(), GameConstants.ALLOWED_COLORS[(int)(Math.random()*GameConstants.ALLOWED_COLORS.length)], this);
         selectionPanel.setVisible(false);
+        agar = new AgarPanel(ip, nameField.getText().equals("Enter a name") ? "" : nameField.getText(), 
+                                GameConstants.ALLOWED_COLORS[(int)(Math.random()*GameConstants.ALLOWED_COLORS.length)], this);
         frame.add(agar);
         frame.getContentPane().setPreferredSize(new Dimension((int)GameConstants.BOARD_WIDTH, (int)GameConstants.BOARD_HEIGHT));
         frame.pack();
         frame.setVisible(true);
-        frame.setResizable(false);
+        frame.setResizable(true);
         agar.connect();
     }
     

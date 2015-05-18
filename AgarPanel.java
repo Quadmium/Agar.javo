@@ -83,18 +83,31 @@ RenderingHints.VALUE_INTERPOLATION_BILINEAR);
             {
                 double deltaTime = (System.nanoTime() - lastFrameRendered) / 1000000000.0;
                 double boundRadius = GameConstants.getBoundRadius(radius);
-                double scale = GameConstants.BOARD_WIDTH / (boundRadius*2);
+                int offsetX = 0;
+                int offsetY = 0;
+                int square;
+                if(getWidth() > getHeight())
+                {
+                    square = getHeight();
+                    offsetX = (getWidth() - square) / 2;
+                }
+                else
+                {
+                    square = getWidth();
+                    offsetY = (getHeight() - square) / 2;
+                }
+                double scale = square / (boundRadius*2);
                 Vector2D estimatedPlayerPosition_unshifted = computeDeltaP(position, (System.nanoTime() - lastUpdate) / 1000000000.0, dataIndex);
                 
                 g.setColor(Color.WHITE);
-                g.fillRect(0,0,(int)GameConstants.BOARD_WIDTH,(int)GameConstants.BOARD_HEIGHT);
+                g.fillRect(offsetX,offsetY,square,square);
                 g.setColor(new Color(232, 232, 232));
                 double firstGridCol = ((boundRadius - estimatedPlayerPosition_unshifted.getX()) % 2.0) * scale;
                 double firstGridRow = ((boundRadius - estimatedPlayerPosition_unshifted.getY()) % 2.0) * scale;
                 for(int i=0; i < boundRadius*2 + 2; i+=2)
                 {
-                    g.fillRect((int)(firstGridCol) + (int)(i * scale), 0, 1, (int)GameConstants.BOARD_HEIGHT);
-                    g.fillRect(0, (int)(firstGridRow) + (int)(i * scale), (int)GameConstants.BOARD_WIDTH, 1);
+                    g.fillRect(offsetX + (int)(firstGridCol) + (int)(i * scale), offsetY, 1, square);
+                    g.fillRect(offsetX, offsetY + (int)(firstGridRow) + (int)(i * scale), square, 1);
                 }
                 
                 if(foodFrame > FOOD_ROTATE_PERIOD)
@@ -116,10 +129,10 @@ RenderingHints.VALUE_INTERPOLATION_BILINEAR);
                     
                     double r = obj.getRadius() * scale;
                     Polygon food = new Polygon();
-                    food.addPoint((int)(x + r * Math.cos(foodAngle)), (int)(y + r * Math.sin(foodAngle)));
-                    food.addPoint((int)(x + r * Math.cos(foodAngle + Math.PI / 2)), (int)(y + r * Math.sin(foodAngle + Math.PI / 2)));
-                    food.addPoint((int)(x + r * Math.cos(foodAngle + Math.PI)), (int)(y + r * Math.sin(foodAngle + Math.PI)));
-                    food.addPoint((int)(x + r * Math.cos(foodAngle + 3 * Math.PI / 2)), (int)(y + r * Math.sin(foodAngle + 3 * Math.PI / 2)));
+                    food.addPoint(offsetX + (int)(x + r * Math.cos(foodAngle)), offsetY + (int)(y + r * Math.sin(foodAngle)));
+                    food.addPoint(offsetX + (int)(x + r * Math.cos(foodAngle + Math.PI / 2)), offsetY + (int)(y + r * Math.sin(foodAngle + Math.PI / 2)));
+                    food.addPoint(offsetX + (int)(x + r * Math.cos(foodAngle + Math.PI)), offsetY + (int)(y + r * Math.sin(foodAngle + Math.PI)));
+                    food.addPoint(offsetX + (int)(x + r * Math.cos(foodAngle + 3 * Math.PI / 2)), offsetY + (int)(y + r * Math.sin(foodAngle + 3 * Math.PI / 2)));
                     g.fillPolygon(food);
                 }
                 foodFrame += deltaTime;
@@ -141,7 +154,7 @@ RenderingHints.VALUE_INTERPOLATION_BILINEAR);
                     g.setColor(u.getColor());
                     int x = (int)((shiftedPosition.getX() - u.getRadius()) * scale);
                     int y = (int)((shiftedPosition.getY() - u.getRadius()) * scale);
-                    g.fillArc(x, y, (int)(u.getRadius() * 2 * scale), (int)(u.getRadius() * 2 * scale), 0, 360);
+                    g.fillArc(offsetX + x, offsetY + y, (int)(u.getRadius() * 2 * scale), (int)(u.getRadius() * 2 * scale), 0, 360);
                     
                     f = new Font("Arial",Font.BOLD,12);
                     g.setFont(f);
@@ -152,17 +165,29 @@ RenderingHints.VALUE_INTERPOLATION_BILINEAR);
                     x = (int)(shiftedPosition.getX() * scale - fm.stringWidth(u.getName())/2);
                     y = (int)(shiftedPosition.getY() * scale + fm.getHeight() / 3.7);
                     
-                    SwingUtils.outlineText(g, u.getName(), x, y, Color.BLACK, Color.WHITE);
+                    SwingUtils.outlineText(g, u.getName(), offsetX + x, offsetY + y, Color.BLACK, Color.WHITE);
                     index++;
                 }
+                
+                g.setColor(Color.LIGHT_GRAY);
+                if(getWidth() > getHeight())
+                {
+                    g.fillRect(0,0,offsetX,getHeight());
+                    g.fillRect(offsetX+square,0,getWidth(),getHeight());
+                }
+                else
+                {
+                    g.fillRect(0,0,getWidth(),offsetY);
+                    g.fillRect(0,offsetY+square,getWidth(),getHeight());
+                }
+                
+                g.setColor(Color.BLACK);
+                f = new Font("Arial",Font.BOLD,12);
+                g.setFont(f);
+                g.drawString("FPS: " + (int)(1/((System.nanoTime() - lastFrameRendered) / 1000000000.0))
+                                + " (" + (int)position.getX() + "," + (int)position.getY() + ")", offsetX + 10, 
+                                offsetY + square - g.getFontMetrics().getHeight());
             }
-            
-            g.setColor(Color.BLACK);
-            f = new Font("Arial",Font.BOLD,12);
-            g.setFont(f);
-            g.drawString("FPS: " + (int)(1/((System.nanoTime() - lastFrameRendered) / 1000000000.0))
-                            + " (" + (int)position.getX() + "," + (int)position.getY() + ")", 10, 
-                            (int)GameConstants.BOARD_HEIGHT - g.getFontMetrics().getHeight());
         }
         lastFrameRendered = System.nanoTime();
     }
