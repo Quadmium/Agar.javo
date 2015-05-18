@@ -122,6 +122,11 @@ public class User
                     }
                     else if(message.startsWith("COLOR "))
                     {
+                        if(!java.util.Arrays.asList(GameConstants.COLOR_STRINGS).contains(message.substring(6)))
+                        {
+                            User.this.purge();
+                            return;
+                        }
                         playerColor = GameConstants.stringToColor(message.substring(6));
                         synchronized(LOCK)
                         {
@@ -324,6 +329,8 @@ public class User
             }
             if(changed)
                 result.deleteCharAt(result.length()-1);
+                
+            result.append("&" + worldData.size());
                 
             worldRemoved.clear();
             worldAdded.clear();

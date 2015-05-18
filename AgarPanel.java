@@ -291,6 +291,7 @@ RenderingHints.VALUE_INTERPOLATION_BILINEAR);
                         String[] messageContents_0 = messageContents[0].split(","); //User data
                         String[] messageContents_1 = messageContents[1].split(","); //World removed
                         String[] messageContents_2 = messageContents[2].split(","); //World added
+                        int serverWorldDataSize = Integer.parseInt(messageContents[3]); //Actual world size
                         dataIndex = Integer.parseInt(messageContents_0[0]);
                         synchronized(LOCK){
                             lastUserData = userData;
@@ -327,6 +328,11 @@ RenderingHints.VALUE_INTERPOLATION_BILINEAR);
                                                                     GameConstants.stringToColor(objData[3]), Double.parseDouble(objData[4])));
                             }
                             
+                            if(worldData.size() != serverWorldDataSize)
+                            {
+                                receivedWorld = false;
+                                System.out.println("WHOOPS");
+                            }
                             AgarPanel.this.radius = userData.get(dataIndex).getRadius();
                             AgarPanel.this.position = new Vector2D(userData.get(dataIndex).getX(), userData.get(dataIndex).getY());
                             secondToLastUpdate = lastUpdate;
@@ -356,12 +362,16 @@ RenderingHints.VALUE_INTERPOLATION_BILINEAR);
                         out.println("COLOR " + GameConstants.colorToString(playerColor));
                         willBroadcastColor = false;
                     }
-                    else if(!receivedWorld)
+                    else if(!receivedWorld && worldData.size() == 0)
                     {
                         out.println("WORLD");
                     }
                     else if(dataIndex != -1 && userData.size() > 0)
                     {
+                        //Still send input if only updating world
+                        if(!receivedWorld)
+                            out.println("WORLD");
+                            
                         double xPos = MouseInfo.getPointerInfo().getLocation().getX() - AgarPanel.this.getLocationOnScreen().getX();
                         double yPos = MouseInfo.getPointerInfo().getLocation().getY() - AgarPanel.this.getLocationOnScreen().getY();
                         

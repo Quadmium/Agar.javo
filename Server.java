@@ -107,6 +107,7 @@ public class Server
                             u.addToWorldAdded(g);
                             
                         u.move(deltaTime);
+                        u.setWorld(worldData);
                     }
                 }
                 lastUpdate = System.nanoTime();

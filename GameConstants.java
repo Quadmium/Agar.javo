@@ -3,7 +3,7 @@ import java.awt.Color;
 public final class GameConstants
 {
     public static final double BOARD_WIDTH = 500, BOARD_HEIGHT = 500;
-    public static final int FOOD_GOAL = 2000;
+    public static final int FOOD_GOAL = 4000;
     public static final double FOOD_RADIUS = 0.6;
     public static final double FOOD_VOLUME = 1;
     public static final double EAT_RATIO = 1.1;
