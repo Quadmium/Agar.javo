@@ -88,7 +88,7 @@ RenderingHints.VALUE_INTERPOLATION_BILINEAR);
                 
                 g.setColor(Color.WHITE);
                 g.fillRect(0,0,(int)GameConstants.BOARD_WIDTH,(int)GameConstants.BOARD_HEIGHT);
-                g.setColor(Color.LIGHT_GRAY);
+                g.setColor(new Color(232, 232, 232));
                 double firstGridCol = ((boundRadius - estimatedPlayerPosition_unshifted.getX()) % 2.0) * scale;
                 double firstGridRow = ((boundRadius - estimatedPlayerPosition_unshifted.getY()) % 2.0) * scale;
                 for(int i=0; i < boundRadius*2 + 2; i+=2)
@@ -145,7 +145,7 @@ RenderingHints.VALUE_INTERPOLATION_BILINEAR);
                     
                     f = new Font("Arial",Font.BOLD,12);
                     g.setFont(f);
-                    int sizeNeeded = SwingUtils.getMaxFittingFontSize(g, f, u.getName(), (int)(u.getRadius() * 2 * scale), (int)(u.getRadius() * scale));
+                    int sizeNeeded = SwingUtils.getMaxFittingFontSize(g, f, u.getName(), (int)(u.getRadius() * 1.8 * scale), (int)(u.getRadius() * scale));
                     f = new Font("Arial",Font.BOLD,sizeNeeded);
                     g.setFont(f);
                     FontMetrics fm = g.getFontMetrics();
