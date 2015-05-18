@@ -22,12 +22,17 @@ public class User
     private OutputHandler outputHandler;
     private volatile int dataIndex;
     private ArrayList<GameObject> userData;
+    private ArrayList<GameObject> worldData = new ArrayList<GameObject>();
+    private ArrayList<GameObject> worldRemoved = new ArrayList<GameObject>();
+    private ArrayList<GameObject> worldAdded = new ArrayList<GameObject>();
     private volatile String name = "";
     private volatile boolean receivedNameRequest = false;
     private volatile boolean receivedColorRequest = false;
     private volatile boolean poison = false;
     private volatile Color playerColor = Color.BLACK;
     private double radius = 1.0;//GameConstants.INITIAL_RADIUS;//(int)(Math.random() * 10) + 1;//GameConstants.INITIAL_RADIUS;
+    private volatile boolean willBroadcastWorld = false;
+    private volatile boolean receivedInitialWorldFromServer = false;
     
     private Vector2D position;
     private Vector2D velocity = new Vector2D();
@@ -52,18 +57,11 @@ public class User
         inputHandler.start();
         outputHandler = new OutputHandler();
         outputHandler.start();
-        (new Thread(new DisconnectWatcher(this))).start();
+        (new Thread(new DisconnectWatcher())).start();
     }
     
     private class DisconnectWatcher extends Thread
     {
-        private User user;
-        
-        public DisconnectWatcher(User user)
-        {
-            this.user = user;
-        }
-        
         public void run()
         {
             while(true)
@@ -71,7 +69,7 @@ public class User
                 double lag = (System.nanoTime() - lastMessage) / 1000000000.0;
                 if(lag > TIMEOUT)
                 {
-                    user.purge();
+                    User.this.purge();
                     return;
                 }
                 try{Thread.sleep(500);}catch(Exception e){}
@@ -106,6 +104,11 @@ public class User
                     if(message.startsWith("NAME "))
                     {
                         name = message.substring(5);
+                        if(name.contains("|") || name.contains(",") || name.contains("&"))
+                        {
+                            User.this.purge();
+                            return;
+                        }
                         synchronized(LOCK)
                         {
                             userData.get(dataIndex).setName(name);
@@ -125,6 +128,10 @@ public class User
                             userData.get(dataIndex).setColor(playerColor);
                         }
                         receivedColorRequest = true;
+                    }
+                    else if(message.startsWith("WORLD"))
+                    {
+                        willBroadcastWorld = true;
                     }
                     else if(message.length() > 0)
                     {
@@ -170,6 +177,11 @@ public class User
                     else if(!receivedColorRequest)
                     {
                         out.println("COLOR");
+                    }
+                    else if(receivedInitialWorldFromServer && willBroadcastWorld)
+                    {
+                        out.println("WORLDFULL " + getWorldData());
+                        willBroadcastWorld = false;
                     }
                     else
                     {
@@ -255,6 +267,22 @@ public class User
         userData.get(dataIndex).setY(position.getY());
     }
     
+    public void setWorld(ArrayList<GameObject> worldData)
+    {
+        receivedInitialWorldFromServer = true;
+        this.worldData = worldData;
+    }
+    
+    public void addToWorldRemoved(GameObject worldObj)
+    {
+        worldRemoved.add(worldObj);
+    }
+    
+    public void addToWorldAdded(GameObject worldObj)
+    {
+        worldAdded.add(worldObj);
+    }
+    
     public void setIndex(int index)
     {
         this.dataIndex = index;
@@ -262,14 +290,59 @@ public class User
     
     private String getBoardData()
     {
-        String result = "" + dataIndex + ",";
-        for(GameObject userObj : userData)
+        StringBuilder result = new StringBuilder("" + dataIndex + ",");
+        synchronized(LOCK)
         {
-            result += userObj.getName() + "|" + userObj.getX() + "|" + userObj.getY() + "|" 
-                        + GameConstants.colorToString(userObj.getColor()) + "|" + userObj.getRadius() + ",";
+            boolean changed = false;
+            for(GameObject userObj : userData)
+            {
+                changed = true;
+                result.append(userObj.getName() + "|" + userObj.getX() + "|" + userObj.getY() + "|" 
+                            + GameConstants.colorToString(userObj.getColor()) + "|" + userObj.getRadius() + ",");
+            }
+            if(changed)
+                result.deleteCharAt(result.length()-1);
+            result.append("&");
+            
+            changed = false;
+            for(GameObject worldObj : worldRemoved)
+            {
+                changed = true;
+                result.append(worldObj.getName() + "|" + worldObj.getX() + "|" + worldObj.getY() + "|" 
+                            + GameConstants.colorToString(worldObj.getColor()) + "|" + worldObj.getRadius() + ",");
+            }
+            if(changed)
+                result.deleteCharAt(result.length()-1);
+            result.append("&");
+            
+            changed = false;
+            for(GameObject worldObj : worldAdded)
+            {
+                changed = true;
+                result.append(worldObj.getName() + "|" + worldObj.getX() + "|" + worldObj.getY() + "|" 
+                            + GameConstants.colorToString(worldObj.getColor()) + "|" + worldObj.getRadius() + ",");
+            }
+            if(changed)
+                result.deleteCharAt(result.length()-1);
+                
+            worldRemoved.clear();
+            worldAdded.clear();
         }
-        result = result.substring(0, result.length()-1);
-        return result;
+        return result.toString();
+    }
+    
+    private String getWorldData()
+    {
+        StringBuilder result = new StringBuilder();
+        synchronized(LOCK)
+        {
+            for(GameObject worldObj : worldData)
+            {
+                result.append(worldObj.getName() + "|" + worldObj.getX() + "|" + worldObj.getY() + "|" 
+                            + GameConstants.colorToString(worldObj.getColor()) + "|" + worldObj.getRadius() + ",");
+            }
+        }
+        return result.substring(0, result.length()-1);
     }
 }
 

@@ -3,6 +3,11 @@ import java.awt.Color;
 public final class GameConstants
 {
     public static final double BOARD_WIDTH = 500, BOARD_HEIGHT = 500;
+    public static final int FOOD_GOAL = 500;
+    public static final double FOOD_RADIUS = 0.6;
+    public static final double FOOD_VOLUME = 1;
+    public static final double EAT_RATIO = 1.1;
+    
     public static final Color[] ALLOWED_COLORS = {
             Color.BLUE,
             Color.CYAN,
@@ -57,5 +62,21 @@ public final class GameConstants
             (FINAL_RADIUS - INITIAL_RADIUS);
 
         return slope * (radius - INITIAL_RADIUS) + INITIAL_BOUNDRADIUS;
+    }
+    
+    public static boolean insideBoundRadius(Vector2D position, double boundRadius, GameObject u)
+    {
+        double leftWall = position.getX() - boundRadius - 2 * u.getRadius();
+        double rightWall = position.getX() + boundRadius + 2 * u.getRadius();
+        double bottomWall = position.getY() - boundRadius - 2 * u.getRadius();
+        double topWall = position.getY() + boundRadius + 2 * u.getRadius();
+        
+        return u.getX() > leftWall && u.getX() < rightWall &&
+                u.getY() > bottomWall && u.getY() < topWall;
+    }
+    
+    public static double distance(Vector2D A, Vector2D B)
+    {
+        return Math.sqrt(Math.pow(A.getX() - B.getX(), 2) + Math.pow(A.getY() - B.getY(), 2));
     }
 }

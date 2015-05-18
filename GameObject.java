@@ -15,6 +15,19 @@ public class GameObject
         this.radius = radius;
     }
     
+    public boolean equalsData(GameObject g)
+    {
+        return radius == g.getRadius() &&
+               playerColor == g.getColor() &&
+               x == g.getX() && y == g.getY() &&
+               name.equals(g.getName());
+    }
+    
+    public Vector2D getPosition()
+    {
+        return new Vector2D(x, y);
+    }
+    
     public double getRadius()
     {
         return radius;

@@ -12,6 +12,7 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.awt.MouseInfo;
 import java.awt.Color;
+import java.awt.Polygon;
 
 public class AgarPanel extends JPanel
 {
@@ -26,15 +27,19 @@ public class AgarPanel extends JPanel
     private volatile Socket socket;
     private ArrayList<GameObject> userData = new ArrayList<GameObject>();
     private ArrayList<GameObject> lastUserData = new ArrayList<GameObject>();
+    private ArrayList<GameObject> worldData = new ArrayList<GameObject>();
     private final Object LOCK = new Object();
     private volatile int dataIndex = -1;
     private volatile PrintWriter out;
     private volatile BufferedReader in;
     private volatile boolean willBroadcastName = false;
     private volatile boolean willBroadcastColor = false;
+    private volatile boolean receivedWorld = false;
     private volatile double lastUpdate = System.nanoTime();
     private volatile double secondToLastUpdate = System.nanoTime()-10;
     private volatile double lastFrameRendered = System.nanoTime();
+    private static final double FOOD_ROTATE_PERIOD = 2;
+    private volatile double foodFrame = 0;
     
     //TODO: Kill threads on agarPanel end
     
@@ -76,6 +81,7 @@ RenderingHints.VALUE_INTERPOLATION_BILINEAR);
         {
             synchronized(LOCK)
             {
+                double deltaTime = (System.nanoTime() - lastFrameRendered) / 1000000000.0;
                 double boundRadius = GameConstants.getBoundRadius(radius);
                 double scale = GameConstants.BOARD_WIDTH / (boundRadius*2);
                 Vector2D estimatedPlayerPosition_unshifted = computeDeltaP(position, (System.nanoTime() - lastUpdate) / 1000000000.0, dataIndex);
@@ -90,13 +96,43 @@ RenderingHints.VALUE_INTERPOLATION_BILINEAR);
                     g.fillRect((int)(firstGridCol) + (int)(i * scale), 0, 1, (int)GameConstants.BOARD_HEIGHT);
                     g.fillRect(0, (int)(firstGridRow) + (int)(i * scale), (int)GameConstants.BOARD_WIDTH, 1);
                 }
+                
+                if(foodFrame > FOOD_ROTATE_PERIOD)
+                    foodFrame -= FOOD_ROTATE_PERIOD;
+                
+                double foodAngle = 2 * Math.PI * foodFrame / FOOD_ROTATE_PERIOD;
+                for(GameObject obj : worldData)
+                {
+                    if(!GameConstants.insideBoundRadius(position, boundRadius, obj))
+                        continue;
+                        
+                    Vector2D objPosition_unshifted = new Vector2D(obj.getX(), obj.getY());
+                    Vector2D shiftedPosition = new Vector2D(objPosition_unshifted.getX() - (estimatedPlayerPosition_unshifted.getX() - boundRadius), 
+                                                              objPosition_unshifted.getY() - (estimatedPlayerPosition_unshifted.getY() - boundRadius));
+                                                              
+                    g.setColor(obj.getColor());
+                    int x = (int)((shiftedPosition.getX() - obj.getRadius()) * scale);
+                    int y = (int)((shiftedPosition.getY() - obj.getRadius()) * scale);
+                    
+                    double r = obj.getRadius() * scale;
+                    Polygon food = new Polygon();
+                    food.addPoint((int)(x + r * Math.cos(foodAngle)), (int)(y + r * Math.sin(foodAngle)));
+                    food.addPoint((int)(x + r * Math.cos(foodAngle + Math.PI / 2)), (int)(y + r * Math.sin(foodAngle + Math.PI / 2)));
+                    food.addPoint((int)(x + r * Math.cos(foodAngle + Math.PI)), (int)(y + r * Math.sin(foodAngle + Math.PI)));
+                    food.addPoint((int)(x + r * Math.cos(foodAngle + 3 * Math.PI / 2)), (int)(y + r * Math.sin(foodAngle + 3 * Math.PI / 2)));
+                    g.fillPolygon(food);
+                }
+                foodFrame += deltaTime;
+                
                 int index = 0;
                 for(GameObject u : userData)
                 {
-                    //Broken ... fix sometime soon
-                    //if(!insideBoundRadius(position, boundRadius, u))
-                    //    continue;
-                        
+                    if(!GameConstants.insideBoundRadius(position, boundRadius, u) || u.getRadius() == 0)
+                    {
+                        index++;
+                        continue;
+                    }
+                    
                     Vector2D uPosition_unshifted = new Vector2D(u.getX(), u.getY());
                     Vector2D estimatedPosition_unshifted = computeDeltaP(uPosition_unshifted, (System.nanoTime() - lastUpdate) / 1000000000.0, index);
                     Vector2D shiftedPosition = new Vector2D(estimatedPosition_unshifted.getX() - (estimatedPlayerPosition_unshifted.getX() - boundRadius), 
@@ -129,17 +165,6 @@ RenderingHints.VALUE_INTERPOLATION_BILINEAR);
                             (int)GameConstants.BOARD_HEIGHT - g.getFontMetrics().getHeight());
         }
         lastFrameRendered = System.nanoTime();
-    }
-    
-    private boolean insideBoundRadius(Vector2D position, double boundRadius, GameObject u)
-    {
-        double leftWall = position.getX() - boundRadius - u.getRadius();
-        double rightWall = position.getX() + boundRadius + u.getRadius();
-        double bottomWall = position.getY() - boundRadius - u.getRadius();
-        double topWall = position.getY() + boundRadius + u.getRadius();
-        
-        return u.getX() > leftWall && u.getX() < rightWall &&
-                u.getY() > bottomWall && u.getY() < topWall;
     }
     
     private Vector2D computeDeltaP(Vector2D position, double deltaTime, int index)
@@ -221,19 +246,62 @@ RenderingHints.VALUE_INTERPOLATION_BILINEAR);
                     {
                         willBroadcastColor = true;
                     }
-                    else
+                    else if(message.startsWith("WORLDFULL "))
                     {
-                        String[] messageContents = message.split(",");
-                        dataIndex = Integer.parseInt(messageContents[0]);
+                        synchronized(LOCK){
+                            worldData = new ArrayList<GameObject>();
+                            String[] messageContents = message.substring(10).split(",");
+                            for(String obj : messageContents)
+                            {
+                                String[] objData = obj.split("\\|");
+                                worldData.add(new GameObject(objData[0], Double.parseDouble(objData[1]), Double.parseDouble(objData[2]),
+                                                                    GameConstants.stringToColor(objData[3]), Double.parseDouble(objData[4])));
+                            }
+                        }
+                        receivedWorld = true;
+                    }
+                    else if(receivedWorld)
+                    {
+                        String[] messageContents = message.split("&", -1);
+                        String[] messageContents_0 = messageContents[0].split(","); //User data
+                        String[] messageContents_1 = messageContents[1].split(","); //World removed
+                        String[] messageContents_2 = messageContents[2].split(","); //World added
+                        dataIndex = Integer.parseInt(messageContents_0[0]);
                         synchronized(LOCK){
                             lastUserData = userData;
                             userData = new ArrayList<GameObject>();
-                            for(int i=1; i<messageContents.length; i++)
+                            for(int i=1; i<messageContents_0.length; i++)
                             {
-                                String[] u = messageContents[i].split("\\|");
+                                String[] u = messageContents_0[i].split("\\|");
                                 userData.add(new GameObject(u[0], Double.parseDouble(u[1]), Double.parseDouble(u[2]),
                                                             GameConstants.stringToColor(u[3]), Double.parseDouble(u[4])));
                             }
+                            
+                            for(String rm : messageContents_1)
+                            {
+                                if(rm.equals(""))
+                                    continue;
+                                String[] objData = rm.split("\\|");
+                                GameObject search = new GameObject(objData[0], Double.parseDouble(objData[1]), Double.parseDouble(objData[2]),
+                                                                    GameConstants.stringToColor(objData[3]), Double.parseDouble(objData[4]));
+                                                                    
+                                for(int i=0; i<worldData.size(); i++)
+                                    if(worldData.get(i).equalsData(search))
+                                    {
+                                        worldData.remove(i);
+                                        break;
+                                    }
+                            }
+                            
+                            for(String add : messageContents_2)
+                            {
+                                if(add.equals(""))
+                                    continue;
+                                String[] objData = add.split("\\|");
+                                worldData.add(new GameObject(objData[0], Double.parseDouble(objData[1]), Double.parseDouble(objData[2]),
+                                                                    GameConstants.stringToColor(objData[3]), Double.parseDouble(objData[4])));
+                            }
+                            
                             AgarPanel.this.radius = userData.get(dataIndex).getRadius();
                             AgarPanel.this.position = new Vector2D(userData.get(dataIndex).getX(), userData.get(dataIndex).getY());
                             secondToLastUpdate = lastUpdate;
@@ -262,6 +330,10 @@ RenderingHints.VALUE_INTERPOLATION_BILINEAR);
                     {
                         out.println("COLOR " + GameConstants.colorToString(playerColor));
                         willBroadcastColor = false;
+                    }
+                    else if(!receivedWorld)
+                    {
+                        out.println("WORLD");
                     }
                     else if(dataIndex != -1 && userData.size() > 0)
                     {

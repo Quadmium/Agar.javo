@@ -13,7 +13,7 @@ public class Server
     private Socket socket;
     private ArrayList<User> users = new ArrayList<User>();
     private ArrayList<GameObject> userData = new ArrayList<GameObject>();
-    private ArrayList<GameObject> boardData = new ArrayList<GameObject>();
+    private ArrayList<GameObject> worldData = new ArrayList<GameObject>();
     private final Object LOCK = new Object();
     
     public Server()
@@ -35,17 +35,77 @@ public class Server
     private class worldUpdateThread implements Runnable
     {
         //Update all clients' positions
+        //Update food
         //Tell them to send info back to player
+        
         public void run()
         {
             long lastUpdate = System.nanoTime();
+            synchronized(LOCK) {
+                while(worldData.size() < GameConstants.FOOD_GOAL)
+                {
+                    GameObject food = new GameObject("F", Math.random() * GameConstants.BOARD_WIDTH,
+                                                      Math.random() * GameConstants.BOARD_HEIGHT,
+                                                      GameConstants.ALLOWED_COLORS[(int)(Math.random() * GameConstants.ALLOWED_COLORS.length)],
+                                                      GameConstants.FOOD_RADIUS);
+                    worldData.add(food);
+                }
+            }
             
             while(true)
             {
                 double deltaTime = (System.nanoTime() - lastUpdate) / 1000000000.0;
                 synchronized(LOCK) {
+                    ArrayList<GameObject> removed = new ArrayList<GameObject>();
+                    ArrayList<GameObject> added = new ArrayList<GameObject>();
+                    
+                    for(GameObject u : userData)
+                    {
+                        for(int i=0; i<worldData.size(); i++)
+                        {
+                            GameObject food = worldData.get(i);
+                            if(GameConstants.distance(u.getPosition(), food.getPosition()) < u.getRadius())
+                            {
+                                u.setRadius(Math.sqrt((Math.PI * u.getRadius() * u.getRadius() + GameConstants.FOOD_VOLUME) / Math.PI));
+                                removed.add(food);
+                                worldData.remove(i);
+                                i--;
+                            }
+                        }
+                    }
+                    
+                    for(GameObject u : userData)
+                    {
+                        for(GameObject enemy : userData)
+                        {
+                            if(u == enemy)
+                                continue;
+                                
+                            if(u.getRadius() > enemy.getRadius() * GameConstants.EAT_RATIO && GameConstants.distance(u.getPosition(), enemy.getPosition()) < u.getRadius())
+                            {
+                                u.setRadius(Math.sqrt((Math.PI * u.getRadius() * u.getRadius() + Math.PI * enemy.getRadius() * enemy.getRadius()) / Math.PI));
+                                enemy.setRadius(0);
+                            }
+                        }
+                    }
+                    
+                    while(worldData.size() < GameConstants.FOOD_GOAL)
+                    {
+                        GameObject food = new GameObject("F", Math.random() * GameConstants.BOARD_WIDTH,
+                                                          Math.random() * GameConstants.BOARD_HEIGHT,
+                                                          GameConstants.ALLOWED_COLORS[(int)(Math.random() * GameConstants.ALLOWED_COLORS.length)],
+                                                          GameConstants.FOOD_RADIUS);
+                        worldData.add(food);
+                        added.add(food);
+                    }
+                    
                     for(User u : users)
                     {
+                        for(GameObject g : removed)
+                            u.addToWorldRemoved(g);
+                        for(GameObject g : added)
+                            u.addToWorldAdded(g);
+                            
                         u.move(deltaTime);
                     }
                 }
@@ -71,7 +131,9 @@ public class Server
                 catch(IOException e) {System.out.println(e);}
                 System.out.println("Client "+socket+" has connected.");
                 synchronized(LOCK) {
-                    users.add(new User(socket, userData, LOCK));
+                    User newUsr = new User(socket, userData, LOCK);
+                    users.add(newUsr);
+                    newUsr.setWorld(worldData);
                 }
                 try {
                     Thread.sleep(CLIENTADDER_THROTTLE);
