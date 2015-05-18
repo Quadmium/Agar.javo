@@ -331,7 +331,6 @@ RenderingHints.VALUE_INTERPOLATION_BILINEAR);
                             if(worldData.size() != serverWorldDataSize)
                             {
                                 receivedWorld = false;
-                                System.out.println("WHOOPS");
                             }
                             AgarPanel.this.radius = userData.get(dataIndex).getRadius();
                             AgarPanel.this.position = new Vector2D(userData.get(dataIndex).getX(), userData.get(dataIndex).getY());

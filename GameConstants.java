@@ -55,6 +55,11 @@ public final class GameConstants
     public static final double INITIAL_BOUNDRADIUS = 10;
     public static final double FINAL_RADIUS = 250;
     public static final double FINAL_BOUNDRADIUS = 500;
+    
+    public static final double INITIAL_RADIUS_VELOCITY = 1; //Do not change
+    public static final double INITIAL_VELOCITY = 6;
+    public static final double FINAL_RADIUS_VELOCITY = 10;
+    public static final double FINAL_VELOCITY = 3;
 
     public static double getBoundRadius(double radius)
     {

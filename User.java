@@ -236,12 +236,8 @@ public class User
     
     public void move(double deltaTime)
     {   
-        double INITIAL_RADIUS = 1.0; //Do not change
-        double INITIAL_VELOCITY = 6.0;
-        double FINAL_RADIUS = 10.0;
-        double FINAL_VELOCITY = 3.0;
-        double k = INITIAL_VELOCITY;
-        double n = Math.log(FINAL_VELOCITY / INITIAL_VELOCITY) / Math.log(FINAL_RADIUS);
+        double k = GameConstants.INITIAL_VELOCITY;
+        double n = Math.log(GameConstants.FINAL_VELOCITY / GameConstants.INITIAL_VELOCITY) / Math.log(GameConstants.FINAL_RADIUS_VELOCITY);
         
         double maxV;
         synchronized(LOCK2)
