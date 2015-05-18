@@ -169,6 +169,16 @@ RenderingHints.VALUE_INTERPOLATION_BILINEAR);
                     index++;
                 }
                 
+                g.setColor(Color.BLACK);
+                f = new Font("Arial",Font.BOLD,12);
+                g.setFont(f);
+                String s = "Score: " + (int)(Math.PI * radius * radius);
+                int sizeNeeded = SwingUtils.getMaxFittingFontSize(g, f, "Score: 1", (int)(4 * square / (2 * GameConstants.getBoundRadius(1))),
+                                                                        (int)(2 * square / (2 * GameConstants.getBoundRadius(1))));
+                f = new Font("Arial",Font.BOLD,sizeNeeded);
+                g.setFont(f);
+                SwingUtils.outlineText(g, s, (int)(offsetX + g.getFontMetrics().getHeight() / 3.8), (int)(offsetY + square - g.getFontMetrics().getHeight() / 3.8), Color.BLACK, Color.WHITE);
+                
                 g.setColor(Color.LIGHT_GRAY);
                 if(getWidth() > getHeight())
                 {
@@ -184,8 +194,10 @@ RenderingHints.VALUE_INTERPOLATION_BILINEAR);
                 g.setColor(Color.BLACK);
                 f = new Font("Arial",Font.BOLD,12);
                 g.setFont(f);
-                g.drawString("FPS: " + (int)(1/((System.nanoTime() - lastFrameRendered) / 1000000000.0))
-                                + " (" + (int)position.getX() + "," + (int)position.getY() + ")", offsetX + 10, 
+                FontMetrics fm = g.getFontMetrics();
+                s = "FPS: " + (int)(1/((System.nanoTime() - lastFrameRendered) / 1000000000.0))
+                                + " (" + (int)position.getX() + "," + (int)position.getY() + ")";
+                g.drawString(s, offsetX + square - fm.stringWidth(s) - 10, 
                                 offsetY + square - g.getFontMetrics().getHeight());
             }
         }
