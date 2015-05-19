@@ -310,9 +310,17 @@ RenderingHints.VALUE_INTERPOLATION_BILINEAR);
                             userData = new ArrayList<GameObject>();
                             for(int i=1; i<messageContents_0.length; i++)
                             {
-                                String[] u = messageContents_0[i].split("\\|");
-                                userData.add(new GameObject(u[0], Double.parseDouble(u[1]), Double.parseDouble(u[2]),
-                                                            GameConstants.stringToColor(u[3]), Double.parseDouble(u[4])));
+                                String[] subObjects = messageContents_0[i].split("#");
+                                String[] u = subObjects[0].split("\\|");
+                                GameObject curUser = new GameObject(u[0], Double.parseDouble(u[1]), Double.parseDouble(u[2]),
+                                                            GameConstants.stringToColor(u[3]), Double.parseDouble(u[4]));
+                                userData.add(curUser);
+                                for(int j=1; j<subObjects.length; j++)
+                                {
+                                    String[] subUser = subObjects[j].split("\\|");
+                                    curUser.addSubObject(new GameObject(subUser[0], Double.parseDouble(subUser[1]), Double.parseDouble(subUser[2]),
+                                                            GameConstants.stringToColor(subUser[3]), Double.parseDouble(subUser[4])));
+                                }
                             }
                             
                             for(String rm : messageContents_1)

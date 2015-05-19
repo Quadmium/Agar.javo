@@ -1,10 +1,12 @@
 import java.awt.Color;
+import java.util.ArrayList;
 
 public class GameObject
 {
     private String name;
     private double x, y, radius;
     private Color playerColor;
+    private ArrayList<GameObject> subObjects = new ArrayList<GameObject>();
     
     public GameObject(String name, double x, double y, Color playerColor, double radius)
     {
@@ -21,6 +23,42 @@ public class GameObject
                playerColor == g.getColor() &&
                x == g.getX() && y == g.getY() &&
                name.equals(g.getName());
+    }
+    
+    public void addSubObject(GameObject obj)
+    {
+        subObjects.add(obj);
+    }
+    
+    public void removeSubObject(int index)
+    {
+        subObjects.remove(index);
+    }
+    
+    public void clearSubObjects()
+    {
+        subObjects.clear();
+    }
+    
+    public int getSubObjectsSize()
+    {
+        return subObjects.size();
+    }
+    
+    public GameObject getSubObject(int index)
+    {
+        return subObjects.get(index);
+    }
+    
+    public int getSubObjectIndex(GameObject obj)
+    {
+        for(int i=0; i<subObjects.size(); i++)
+        {
+            if(subObjects.get(i).equalsData(obj))
+                return i;
+        }
+        
+        return -1;
     }
     
     public Vector2D getPosition()

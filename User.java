@@ -25,6 +25,7 @@ public class User
     private ArrayList<GameObject> worldData = new ArrayList<GameObject>();
     private ArrayList<GameObject> worldRemoved = new ArrayList<GameObject>();
     private ArrayList<GameObject> worldAdded = new ArrayList<GameObject>();
+    private ArrayList<GameObject> subObjects = new ArrayList<GameObject>();
     private volatile String name = "";
     private volatile boolean receivedNameRequest = false;
     private volatile boolean receivedColorRequest = false;
@@ -299,7 +300,20 @@ public class User
             {
                 changed = true;
                 result.append(userObj.getName() + "|" + userObj.getX() + "|" + userObj.getY() + "|" 
-                            + GameConstants.colorToString(userObj.getColor()) + "|" + userObj.getRadius() + ",");
+                            + GameConstants.colorToString(userObj.getColor()) + "|" + userObj.getRadius() + "#");
+                            
+                boolean changed2 = false;
+                for(int i=0; i<userObj.getSubObjectsSize(); i++)
+                {
+                    changed2 = true;
+                    GameObject sub = userObj.getSubObject(i);
+                    result.append(sub.getName() + "|" + sub.getX() + "|" + sub.getY() + "|" 
+                            + GameConstants.colorToString(sub.getColor()) + "|" + sub.getRadius() + "#");
+                }
+                if(changed2)
+                    result.deleteCharAt(result.length()-1);
+                    
+                result.append(",");
             }
             if(changed)
                 result.deleteCharAt(result.length()-1);
