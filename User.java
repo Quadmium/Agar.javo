@@ -252,6 +252,8 @@ public class User
                 for(int i=0; i<userData.get(dataIndex).getSubObjectsSize(); i++)
                     subObjects.add(userData.get(dataIndex).getSubObject(i));
             }
+            //Others can change radius
+            radius = userData.get(dataIndex).getRadius();
 
             if(subObjects.size() == 0)
             {
@@ -339,7 +341,7 @@ public class User
                 {
                     GameObject obj = subObjects.get(i);
                     if(obj.getRadius() < GameConstants.MIN_SPLIT_RADIUS)
-                        return;
+                        continue;
                     double dx = velocity.unitVector().scalarMult(obj.getRadius() / Math.sqrt(2)).getX();
                     double dy = velocity.unitVector().scalarMult(obj.getRadius() / Math.sqrt(2)).getY();
                     GameObject objSplit = new GameObject(obj.getName(), obj.getPosition().getX() - dx, obj.getPosition().getY() - dy, obj.getColor(), obj.getRadius() / Math.sqrt(2));
