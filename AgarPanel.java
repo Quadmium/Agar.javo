@@ -13,8 +13,10 @@ import java.util.ArrayList;
 import java.awt.MouseInfo;
 import java.awt.Color;
 import java.awt.Polygon;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 
-public class AgarPanel extends JPanel
+public class AgarPanel extends JPanel implements KeyListener
 {
     private volatile boolean connecting = true;
     private String ip;
@@ -40,9 +42,12 @@ public class AgarPanel extends JPanel
     private volatile double lastFrameRendered = System.nanoTime();
     private static final double FOOD_ROTATE_PERIOD = 2;
     private volatile double foodFrame = 0;
-    
+
+    private volatile boolean spacePressed = false;
+    private volatile boolean lastSpacePressed = false;
+
     //TODO: Kill threads on agarPanel end
-    
+
     public AgarPanel(String ip, String name, Color playerColor, MainMenu parent)
     {
         super();
@@ -51,8 +56,11 @@ public class AgarPanel extends JPanel
         this.parent = parent;
         this.name = name;
         this.playerColor = playerColor;
+        addKeyListener(this);
+        setFocusable(true);
+        requestFocusInWindow();
     }
-    
+
     @Override
     public void paintComponent(Graphics g)
     {
@@ -61,19 +69,19 @@ public class AgarPanel extends JPanel
         Font f = new Font("Arial",Font.BOLD,24);
         g.setFont(f);
         ((Graphics2D)g).setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-RenderingHints.VALUE_ANTIALIAS_ON);
+            RenderingHints.VALUE_ANTIALIAS_ON);
         ((Graphics2D)g).setRenderingHint(RenderingHints.KEY_INTERPOLATION,
-RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-        
+            RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+
         if(connecting)
         {
             String s = "Connecting to " + ip;
             FontMetrics fm = g.getFontMetrics();
             int x = d.width/2 - fm.stringWidth(s)/2;
             int y = d.height/2 - fm.getHeight();
-           
+
             g.drawString(s,x,y);
-            
+
             x = d.width/2 - fm.stringWidth("Status: " + status)/2;
             g.drawString("Status: " + status,x,y+50);
         }
@@ -97,8 +105,8 @@ RenderingHints.VALUE_INTERPOLATION_BILINEAR);
                     offsetY = (getHeight() - square) / 2;
                 }
                 double scale = square / (boundRadius*2);
-                Vector2D estimatedPlayerPosition_unshifted = computeDeltaP(position, (System.nanoTime() - lastUpdate) / 1000000000.0, dataIndex);
-                
+                Vector2D estimatedPlayerPosition_unshifted = computeDeltaP(position, (System.nanoTime() - lastUpdate) / 1000000000.0, dataIndex, -1);
+
                 g.setColor(Color.WHITE);
                 g.fillRect(offsetX,offsetY,square,square);
                 g.setColor(new Color(232, 232, 232));
@@ -109,24 +117,24 @@ RenderingHints.VALUE_INTERPOLATION_BILINEAR);
                     g.fillRect(offsetX + (int)(firstGridCol) + (int)(i * scale), offsetY, 1, square);
                     g.fillRect(offsetX, offsetY + (int)(firstGridRow) + (int)(i * scale), square, 1);
                 }
-                
+
                 if(foodFrame > FOOD_ROTATE_PERIOD)
                     foodFrame -= FOOD_ROTATE_PERIOD;
-                
+
                 double foodAngle = 2 * Math.PI * foodFrame / FOOD_ROTATE_PERIOD;
                 for(GameObject obj : worldData)
                 {
                     if(!GameConstants.insideBoundRadius(position, boundRadius, obj))
                         continue;
-                        
+
                     Vector2D objPosition_unshifted = new Vector2D(obj.getX(), obj.getY());
                     Vector2D shiftedPosition = new Vector2D(objPosition_unshifted.getX() - (estimatedPlayerPosition_unshifted.getX() - boundRadius), 
-                                                              objPosition_unshifted.getY() - (estimatedPlayerPosition_unshifted.getY() - boundRadius));
-                                                              
+                            objPosition_unshifted.getY() - (estimatedPlayerPosition_unshifted.getY() - boundRadius));
+
                     g.setColor(obj.getColor());
                     int x = (int)((shiftedPosition.getX() - obj.getRadius()) * scale);
                     int y = (int)((shiftedPosition.getY() - obj.getRadius()) * scale);
-                    
+
                     double r = obj.getRadius() * scale;
                     Polygon food = new Polygon();
                     food.addPoint(offsetX + (int)(x + r * Math.cos(foodAngle)), offsetY + (int)(y + r * Math.sin(foodAngle)));
@@ -136,7 +144,7 @@ RenderingHints.VALUE_INTERPOLATION_BILINEAR);
                     g.fillPolygon(food);
                 }
                 foodFrame += deltaTime;
-                
+
                 int index = 0;
                 for(GameObject u : userData)
                 {
@@ -145,84 +153,95 @@ RenderingHints.VALUE_INTERPOLATION_BILINEAR);
                         index++;
                         continue;
                     }
-                    
-                    Vector2D uPosition_unshifted = new Vector2D(u.getX(), u.getY());
-                    Vector2D estimatedPosition_unshifted = computeDeltaP(uPosition_unshifted, (System.nanoTime() - lastUpdate) / 1000000000.0, index);
-                    Vector2D shiftedPosition = new Vector2D(estimatedPosition_unshifted.getX() - (estimatedPlayerPosition_unshifted.getX() - boundRadius), 
-                                                              estimatedPosition_unshifted.getY() - (estimatedPlayerPosition_unshifted.getY() - boundRadius));
-                                                              
-                    g.setColor(u.getColor());
-                    int x = (int)((shiftedPosition.getX() - u.getRadius()) * scale);
-                    int y = (int)((shiftedPosition.getY() - u.getRadius()) * scale);
-                    g.fillArc(offsetX + x, offsetY + y, (int)(u.getRadius() * 2 * scale), (int)(u.getRadius() * 2 * scale), 0, 360);
-                    
+
+                    for(int i=-1; i<u.getSubObjectsSize(); i++)
+                    {
+                        if(i < 0 && u.getSubObjectsSize() > 0)
+                            continue;
+
+                        GameObject obj = i==-1? u : u.getSubObject(i);
+                        Vector2D objPosition_unshifted = new Vector2D(obj.getX(), obj.getY());
+                        Vector2D estimatedPosition_unshifted = computeDeltaP(objPosition_unshifted, (System.nanoTime() - lastUpdate) / 1000000000.0, index, i);
+                        Vector2D shiftedPosition = new Vector2D(estimatedPosition_unshifted.getX() - (estimatedPlayerPosition_unshifted.getX() - boundRadius), 
+                                estimatedPosition_unshifted.getY() - (estimatedPlayerPosition_unshifted.getY() - boundRadius));
+
+                        g.setColor(obj.getColor());
+                        int x = (int)((shiftedPosition.getX() - obj.getRadius()) * scale);
+                        int y = (int)((shiftedPosition.getY() - obj.getRadius()) * scale);
+                        g.fillArc(offsetX + x, offsetY + y, (int)(obj.getRadius() * 2 * scale), (int)(obj.getRadius() * 2 * scale), 0, 360);
+
+                        f = new Font("Arial",Font.BOLD,12);
+                        g.setFont(f);
+                        int sizeNeeded = SwingUtils.getMaxFittingFontSize(g, f, obj.getName(), (int)(obj.getRadius() * 1.8 * scale), (int)(obj.getRadius() * scale));
+                        f = new Font("Arial",Font.BOLD,sizeNeeded);
+                        g.setFont(f);
+                        FontMetrics fm = g.getFontMetrics();
+                        x = (int)(shiftedPosition.getX() * scale - fm.stringWidth(obj.getName())/2);
+                        y = (int)(shiftedPosition.getY() * scale + fm.getHeight() / 3.7);
+
+                        SwingUtils.outlineText(g, obj.getName(), offsetX + x, offsetY + y, Color.BLACK, Color.WHITE);
+                    }
+
+                    g.setColor(Color.BLACK);
                     f = new Font("Arial",Font.BOLD,12);
                     g.setFont(f);
-                    int sizeNeeded = SwingUtils.getMaxFittingFontSize(g, f, u.getName(), (int)(u.getRadius() * 1.8 * scale), (int)(u.getRadius() * scale));
+                    String s = "Score: " + (int)(Math.PI * radius * radius);
+                    int sizeNeeded = SwingUtils.getMaxFittingFontSize(g, f, "Score: 1", (int)(4 * square / (2 * GameConstants.getBoundRadius(1))),
+                            (int)(2 * square / (2 * GameConstants.getBoundRadius(1))));
                     f = new Font("Arial",Font.BOLD,sizeNeeded);
                     g.setFont(f);
+                    SwingUtils.outlineText(g, s, (int)(offsetX + g.getFontMetrics().getHeight() / 3.8), (int)(offsetY + square - g.getFontMetrics().getHeight() / 3.8), Color.BLACK, Color.WHITE);
+
+                    g.setColor(Color.LIGHT_GRAY);
+                    if(getWidth() > getHeight())
+                    {
+                        g.fillRect(0,0,offsetX,getHeight());
+                        g.fillRect(offsetX+square,0,getWidth(),getHeight());
+                    }
+                    else
+                    {
+                        g.fillRect(0,0,getWidth(),offsetY);
+                        g.fillRect(0,offsetY+square,getWidth(),getHeight());
+                    }
+
+                    g.setColor(Color.BLACK);
+                    f = new Font("Arial",Font.BOLD,12);
+                    g.setFont(f);
                     FontMetrics fm = g.getFontMetrics();
-                    x = (int)(shiftedPosition.getX() * scale - fm.stringWidth(u.getName())/2);
-                    y = (int)(shiftedPosition.getY() * scale + fm.getHeight() / 3.7);
-                    
-                    SwingUtils.outlineText(g, u.getName(), offsetX + x, offsetY + y, Color.BLACK, Color.WHITE);
+                    s = "FPS: " + (int)(1/((System.nanoTime() - lastFrameRendered) / 1000000000.0))
+                    + " (" + (int)position.getX() + "," + (int)position.getY() + ")";
+                    g.drawString(s, offsetX + square - fm.stringWidth(s) - 10, 
+                        offsetY + square - g.getFontMetrics().getHeight());
                     index++;
                 }
-                
-                g.setColor(Color.BLACK);
-                f = new Font("Arial",Font.BOLD,12);
-                g.setFont(f);
-                String s = "Score: " + (int)(Math.PI * radius * radius);
-                int sizeNeeded = SwingUtils.getMaxFittingFontSize(g, f, "Score: 1", (int)(4 * square / (2 * GameConstants.getBoundRadius(1))),
-                                                                        (int)(2 * square / (2 * GameConstants.getBoundRadius(1))));
-                f = new Font("Arial",Font.BOLD,sizeNeeded);
-                g.setFont(f);
-                SwingUtils.outlineText(g, s, (int)(offsetX + g.getFontMetrics().getHeight() / 3.8), (int)(offsetY + square - g.getFontMetrics().getHeight() / 3.8), Color.BLACK, Color.WHITE);
-                
-                g.setColor(Color.LIGHT_GRAY);
-                if(getWidth() > getHeight())
-                {
-                    g.fillRect(0,0,offsetX,getHeight());
-                    g.fillRect(offsetX+square,0,getWidth(),getHeight());
-                }
-                else
-                {
-                    g.fillRect(0,0,getWidth(),offsetY);
-                    g.fillRect(0,offsetY+square,getWidth(),getHeight());
-                }
-                
-                g.setColor(Color.BLACK);
-                f = new Font("Arial",Font.BOLD,12);
-                g.setFont(f);
-                FontMetrics fm = g.getFontMetrics();
-                s = "FPS: " + (int)(1/((System.nanoTime() - lastFrameRendered) / 1000000000.0))
-                                + " (" + (int)position.getX() + "," + (int)position.getY() + ")";
-                g.drawString(s, offsetX + square - fm.stringWidth(s) - 10, 
-                                offsetY + square - g.getFontMetrics().getHeight());
             }
+            lastFrameRendered = System.nanoTime();
         }
-        lastFrameRendered = System.nanoTime();
     }
-    
-    private Vector2D computeDeltaP(Vector2D position, double deltaTime, int index)
+
+    private Vector2D computeDeltaP(Vector2D position, double deltaTime, int index, int subIndex)
     {
-        if(lastUserData == null || userData == null || lastUserData.size() <= index || userData.size() <= index ||
-           !lastUserData.get(index).getName().equals(userData.get(index).getName()))
+        try
+        {
+            GameObject last = subIndex < 0 ? lastUserData.get(index) : lastUserData.get(index).getSubObject(subIndex);
+            Vector2D dP = position.minus(new Vector2D(last.getX(), last.getY()));
+            double dT = (lastUpdate - secondToLastUpdate) / 1000000000.0;
+            Vector2D velocity = dP.scalarMult(1.0/dT);
+
+            Vector2D predictedDP = velocity.scalarMult(deltaTime);
+            return position.plus(predictedDP);
+        }
+        catch(Exception e)
+        {
             return position;
-        
-        Vector2D dP = position.minus(new Vector2D(lastUserData.get(index).getX(), lastUserData.get(index).getY()));
-        double dT = (lastUpdate - secondToLastUpdate) / 1000000000.0;
-        Vector2D velocity = dP.scalarMult(1.0/dT);
-        
-        Vector2D predictedDP = velocity.scalarMult(deltaTime);
-        return position.plus(predictedDP);
+        }
     }
-    
+
     public void connect()
     {
         (new Thread(new Connector())).start();
     }
-    
+
     private class Connector implements Runnable
     {
         public void run()
@@ -233,7 +252,7 @@ RenderingHints.VALUE_INTERPOLATION_BILINEAR);
                 socket = new Socket(ip, 40124);
                 socket.setTcpNoDelay(true);
                 out = new PrintWriter(socket.getOutputStream(), 
-                         true);
+                    true);
                 in = new BufferedReader(new InputStreamReader(
                         socket.getInputStream()));
             } catch (Exception e) {
@@ -244,7 +263,7 @@ RenderingHints.VALUE_INTERPOLATION_BILINEAR);
                 parent.endGame();
                 return;
             }
-            
+
             status = "Connected.";
             connecting = false;
             (new Thread(new GameUpdaterIn())).start();
@@ -252,7 +271,7 @@ RenderingHints.VALUE_INTERPOLATION_BILINEAR);
             (new Thread(new Repainter())).start();
         }
     }
-    
+
     private class Repainter implements Runnable
     {
         public void run()
@@ -266,7 +285,7 @@ RenderingHints.VALUE_INTERPOLATION_BILINEAR);
             }
         }
     }
-    
+
     private class GameUpdaterIn implements Runnable
     {   
         public void run()
@@ -292,7 +311,7 @@ RenderingHints.VALUE_INTERPOLATION_BILINEAR);
                             {
                                 String[] objData = obj.split("\\|");
                                 worldData.add(new GameObject(objData[0], Double.parseDouble(objData[1]), Double.parseDouble(objData[2]),
-                                                                    GameConstants.stringToColor(objData[3]), Double.parseDouble(objData[4])));
+                                        GameConstants.stringToColor(objData[3]), Double.parseDouble(objData[4])));
                             }
                         }
                         receivedWorld = true;
@@ -313,24 +332,24 @@ RenderingHints.VALUE_INTERPOLATION_BILINEAR);
                                 String[] subObjects = messageContents_0[i].split("#");
                                 String[] u = subObjects[0].split("\\|");
                                 GameObject curUser = new GameObject(u[0], Double.parseDouble(u[1]), Double.parseDouble(u[2]),
-                                                            GameConstants.stringToColor(u[3]), Double.parseDouble(u[4]));
-                                userData.add(curUser);
+                                        GameConstants.stringToColor(u[3]), Double.parseDouble(u[4]));
                                 for(int j=1; j<subObjects.length; j++)
                                 {
                                     String[] subUser = subObjects[j].split("\\|");
                                     curUser.addSubObject(new GameObject(subUser[0], Double.parseDouble(subUser[1]), Double.parseDouble(subUser[2]),
-                                                            GameConstants.stringToColor(subUser[3]), Double.parseDouble(subUser[4])));
+                                            GameConstants.stringToColor(subUser[3]), Double.parseDouble(subUser[4])));
                                 }
+                                userData.add(curUser);
                             }
-                            
+
                             for(String rm : messageContents_1)
                             {
                                 if(rm.equals(""))
                                     continue;
                                 String[] objData = rm.split("\\|");
                                 GameObject search = new GameObject(objData[0], Double.parseDouble(objData[1]), Double.parseDouble(objData[2]),
-                                                                    GameConstants.stringToColor(objData[3]), Double.parseDouble(objData[4]));
-                                                                    
+                                        GameConstants.stringToColor(objData[3]), Double.parseDouble(objData[4]));
+
                                 for(int i=0; i<worldData.size(); i++)
                                     if(worldData.get(i).equalsData(search))
                                     {
@@ -338,16 +357,16 @@ RenderingHints.VALUE_INTERPOLATION_BILINEAR);
                                         break;
                                     }
                             }
-                            
+
                             for(String add : messageContents_2)
                             {
                                 if(add.equals(""))
                                     continue;
                                 String[] objData = add.split("\\|");
                                 worldData.add(new GameObject(objData[0], Double.parseDouble(objData[1]), Double.parseDouble(objData[2]),
-                                                                    GameConstants.stringToColor(objData[3]), Double.parseDouble(objData[4])));
+                                        GameConstants.stringToColor(objData[3]), Double.parseDouble(objData[4])));
                             }
-                            
+
                             if(worldData.size() != serverWorldDataSize)
                             {
                                 receivedWorld = false;
@@ -359,11 +378,13 @@ RenderingHints.VALUE_INTERPOLATION_BILINEAR);
                         }
                     }
                     Thread.sleep(1);
-                } catch (Exception e) {System.out.println(e);}
+                } catch (Exception e) {
+                    System.out.println(e);
+                }
             }
         }
     }
-    
+
     private class GameUpdaterOut implements Runnable
     {   
         public void run()
@@ -390,10 +411,13 @@ RenderingHints.VALUE_INTERPOLATION_BILINEAR);
                         //Still send input if only updating world
                         if(!receivedWorld)
                             out.println("WORLD");
-                            
+
+                        if(lastSpacePressed && !spacePressed)
+                            out.println("SPLIT");
+
                         double xPos = MouseInfo.getPointerInfo().getLocation().getX() - AgarPanel.this.getLocationOnScreen().getX();
                         double yPos = MouseInfo.getPointerInfo().getLocation().getY() - AgarPanel.this.getLocationOnScreen().getY();
-                        
+
                         Vector2D velocity;
                         synchronized(LOCK){
                             velocity = new Vector2D(xPos - AgarPanel.this.getSize().getWidth()/2, yPos - AgarPanel.this.getSize().getHeight()/2);
@@ -401,9 +425,31 @@ RenderingHints.VALUE_INTERPOLATION_BILINEAR);
                         velocity = velocity.scalarMult(1.0/30.0);
                         out.println(velocity.getX() + "," + velocity.getY());
                     }
+
+                    lastSpacePressed = spacePressed;
                     Thread.sleep(100);
-                } catch (Exception e) {System.out.println(e);}
+                } catch (Exception e) {
+                    System.out.println(e);
+                }
             }
+        }
+    }
+
+    @Override
+    public void keyTyped(KeyEvent e) {
+    }
+
+    @Override
+    public void keyPressed(KeyEvent e) {
+        if (e.getKeyCode() == KeyEvent.VK_SPACE) {
+            spacePressed = true;
+        }
+    }
+
+    @Override
+    public void keyReleased(KeyEvent e) {
+        if (e.getKeyCode() == KeyEvent.VK_SPACE) {
+            spacePressed = false;
         }
     }
 }

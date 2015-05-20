@@ -90,6 +90,7 @@ public class MainMenu
         frame.setVisible(true);
         frame.setResizable(true);
         agar.connect();
+        agar.requestFocus();
     }
     
     public void endGame()

@@ -34,7 +34,7 @@ public class User
     private double radius = 1.0;//GameConstants.INITIAL_RADIUS;//(int)(Math.random() * 10) + 1;//GameConstants.INITIAL_RADIUS;
     private volatile boolean willBroadcastWorld = false;
     private volatile boolean receivedInitialWorldFromServer = false;
-    
+
     private Vector2D position;
     private Vector2D velocity = new Vector2D();
     private volatile double velocityX = 0.0;
@@ -42,8 +42,8 @@ public class User
     private volatile long lastMessage = System.nanoTime();
     private final double TIMEOUT = 2.0;
     private final Object LOCK;
-    private final Object LOCK2 = new Object();
-    
+    //private final Object LOCK2 = new Object();
+
     public User(Socket newSocket, ArrayList<GameObject> userData, Object LOCK)
     {
         // Set properties
@@ -51,7 +51,7 @@ public class User
         connected = true;
         this.userData = userData;
         this.LOCK = LOCK;
-        position = new Vector2D(Math.random() * GameConstants.BOARD_WIDTH, Math.random() * GameConstants.BOARD_HEIGHT);
+        position = new Vector2D(200,200);//Math.random() * GameConstants.BOARD_WIDTH, Math.random() * GameConstants.BOARD_HEIGHT);
         userData.add(new GameObject(name, position.getX(), position.getY(), playerColor, radius));
         dataIndex = userData.size() - 1;
         inputHandler = new InputHandler();
@@ -60,7 +60,7 @@ public class User
         outputHandler.start();
         (new Thread(new DisconnectWatcher())).start();
     }
-    
+
     private class DisconnectWatcher extends Thread
     {
         public void run()
@@ -77,7 +77,7 @@ public class User
             }
         }
     }
-    
+
     private class InputHandler extends Thread
     {
         private BufferedReader in;
@@ -139,6 +139,10 @@ public class User
                     {
                         willBroadcastWorld = true;
                     }
+                    else if(message.equals("SPLIT"))
+                    {
+                        splitCharacter();
+                    }
                     else if(message.length() > 0)
                     {
                         velocityX = Double.parseDouble(message.split(",")[0]);
@@ -153,7 +157,7 @@ public class User
             }
         }
     }
-    
+
     private class OutputHandler extends Thread
     {
         private PrintWriter out;
@@ -197,17 +201,17 @@ public class User
                 }
                 catch(Exception e)
                 {
-                    //System.out.println(toString()+" has input interrupted.");
+                    System.out.println(e);
                 }
             }
         }
     }
-    
+
     public boolean isConnected()
     {
         return connected;
     }
-    
+
     public void purge()
     {
         // Close everything
@@ -222,7 +226,7 @@ public class User
             System.out.println("Could not purge "+socket+".");
         }
     }
-    
+
     public String toString()
     {
         return new String(socket.toString());
@@ -234,62 +238,151 @@ public class User
         userData.get(dataIndex).setX(position.getX());
         userData.get(dataIndex).setY(position.getY());
     }
-    
+
     public void move(double deltaTime)
     {   
-        double k = GameConstants.INITIAL_VELOCITY;
-        double n = Math.log(GameConstants.FINAL_VELOCITY / GameConstants.INITIAL_VELOCITY) / Math.log(GameConstants.FINAL_RADIUS_VELOCITY);
-        
-        double maxV;
-        synchronized(LOCK2)
+        synchronized(LOCK)
         {
-            maxV = k * Math.pow(radius, n);
+            double maxV;
+            velocity = new Vector2D(velocityX, velocityY);
+            //Others can change subobjects
+            if(userData.get(dataIndex).getSubObjectsSize() != subObjects.size())
+            {
+                subObjects.clear();
+                for(int i=0; i<userData.get(dataIndex).getSubObjectsSize(); i++)
+                    subObjects.add(userData.get(dataIndex).getSubObject(i));
+            }
+
+            if(subObjects.size() == 0)
+            {
+                maxV = GameConstants.maximumVelocity(radius);
+
+                if(velocity.length() > maxV)
+                    velocity = velocity.unitVector().scalarMult(maxV);
+
+                Vector2D deltaP = velocity.scalarMult(deltaTime);
+                position = position.plus(deltaP);
+
+                if(position.getX() + radius > GameConstants.BOARD_WIDTH)
+                    position = new Vector2D(GameConstants.BOARD_WIDTH - radius, position.getY());
+                if(position.getY() + radius > GameConstants.BOARD_HEIGHT)
+                    position = new Vector2D(position.getX(), GameConstants.BOARD_HEIGHT - radius);
+                if(position.getX() - radius < 0)
+                    position = new Vector2D(radius, position.getY());
+                if(position.getY() - radius < 0)
+                    position = new Vector2D(position.getX(), radius);
+
+                userData.get(dataIndex).setX(position.getX());
+                userData.get(dataIndex).setY(position.getY());
+            }
+            else
+            {
+                Vector2D avgPos = new Vector2D(0,0);
+                int index = 0;
+                for(GameObject g : subObjects)
+                {
+                    avgPos = avgPos.plus(g.getPosition());
+                    maxV = GameConstants.maximumVelocity(g.getRadius());
+                    Vector2D localVelocity = new Vector2D(velocity);
+                    if(localVelocity.length() > maxV)
+                        localVelocity = localVelocity.unitVector().scalarMult(maxV);
+
+                    Vector2D deltaP = localVelocity.scalarMult(deltaTime);
+                    Vector2D localPosition = g.getPosition().plus(deltaP);
+
+                    if(localPosition.getX() + g.getRadius() > GameConstants.BOARD_WIDTH)
+                        localPosition = new Vector2D(GameConstants.BOARD_WIDTH - g.getRadius(), localPosition.getY());
+                    if(localPosition.getY() + g.getRadius() > GameConstants.BOARD_HEIGHT)
+                        localPosition = new Vector2D(localPosition.getX(), GameConstants.BOARD_HEIGHT - g.getRadius());
+                    if(localPosition.getX() - g.getRadius() < 0)
+                        localPosition = new Vector2D(g.getRadius(), localPosition.getY());
+                    if(localPosition.getY() - g.getRadius() < 0)
+                        localPosition = new Vector2D(localPosition.getX(), g.getRadius());
+
+                    g.setX(localPosition.getX());
+                    g.setY(localPosition.getY());
+                    userData.get(dataIndex).getSubObject(index).setX(g.getPosition().getX());
+                    userData.get(dataIndex).getSubObject(index).setY(g.getPosition().getY());
+                    index++;
+                }
+
+                avgPos = avgPos.scalarMult(1.0 / index);
+                userData.get(dataIndex).setX(avgPos.getX());
+                userData.get(dataIndex).setY(avgPos.getY());
+                userData.get(dataIndex).setRadius(GameConstants.calculateCombinedRadius(subObjects));
+            }
         }
-        
-        velocity = new Vector2D(velocityX, velocityY);
-        if(velocity.length() > maxV)
-            velocity = velocity.unitVector().scalarMult(maxV);
-            
-        Vector2D deltaP = velocity.scalarMult(deltaTime);
-        position = position.plus(deltaP);
-        
-        synchronized(LOCK2)
+    }
+
+    private void splitCharacter()
+    {
+        synchronized(LOCK)
         {
-            if(position.getX() + radius > GameConstants.BOARD_WIDTH)
-                position = new Vector2D(GameConstants.BOARD_WIDTH - radius, position.getY());
-            if(position.getY() + radius > GameConstants.BOARD_HEIGHT)
-                position = new Vector2D(position.getX(), GameConstants.BOARD_HEIGHT - radius);
-            if(position.getX() - radius < 0)
-                position = new Vector2D(radius, position.getY());
-            if(position.getY() - radius < 0)
-                position = new Vector2D(position.getX(), radius);
+            if(subObjects.size() == 0)
+            {
+                if(radius < GameConstants.MIN_SPLIT_RADIUS)
+                    return;
+                    
+                double dx = velocity.unitVector().scalarMult(radius / Math.sqrt(2)).getX();
+                double dy = velocity.unitVector().scalarMult(radius / Math.sqrt(2)).getY();
+                subObjects.add(new GameObject(name, position.getX() + dx, position.getY() + dy, playerColor, radius / Math.sqrt(2)));
+                subObjects.add(new GameObject(name, position.getX() - dx, position.getY() - dy, playerColor, radius / Math.sqrt(2)));
+                syncSubObjects();
+            }
+            else
+            {
+                if(subObjects.size() >= GameConstants.MAX_SPLIT)
+                    return;
+                    
+                int size = subObjects.size();
+                for(int i=0; i<size; i++)
+                {
+                    GameObject obj = subObjects.get(i);
+                    if(obj.getRadius() < GameConstants.MIN_SPLIT_RADIUS)
+                        return;
+                    double dx = velocity.unitVector().scalarMult(obj.getRadius() / Math.sqrt(2)).getX();
+                    double dy = velocity.unitVector().scalarMult(obj.getRadius() / Math.sqrt(2)).getY();
+                    GameObject objSplit = new GameObject(obj.getName(), obj.getPosition().getX() - dx, obj.getPosition().getY() - dy, obj.getColor(), obj.getRadius() / Math.sqrt(2));
+                    obj.setX(obj.getPosition().getX() + dx);
+                    obj.setY(obj.getPosition().getY() + dy);
+                    obj.setRadius(obj.getRadius() / Math.sqrt(2));
+                    subObjects.add(objSplit);
+                }
+                syncSubObjects();
+            }
         }
-            
-        userData.get(dataIndex).setX(position.getX());
-        userData.get(dataIndex).setY(position.getY());
     }
     
+    private void syncSubObjects()
+    {
+        radius = GameConstants.calculateCombinedRadius(subObjects);
+        userData.get(dataIndex).clearSubObjects();
+        for(GameObject g : subObjects)
+            userData.get(dataIndex).addSubObject(g);
+        userData.get(dataIndex).setRadius(radius);
+    }
+
     public void setWorld(ArrayList<GameObject> worldData)
     {
         receivedInitialWorldFromServer = true;
         this.worldData = worldData;
     }
-    
+
     public void addToWorldRemoved(GameObject worldObj)
     {
         worldRemoved.add(worldObj);
     }
-    
+
     public void addToWorldAdded(GameObject worldObj)
     {
         worldAdded.add(worldObj);
     }
-    
+
     public void setIndex(int index)
     {
         this.dataIndex = index;
     }
-    
+
     private String getBoardData()
     {
         StringBuilder result = new StringBuilder("" + dataIndex + ",");
@@ -300,54 +393,54 @@ public class User
             {
                 changed = true;
                 result.append(userObj.getName() + "|" + userObj.getX() + "|" + userObj.getY() + "|" 
-                            + GameConstants.colorToString(userObj.getColor()) + "|" + userObj.getRadius() + "#");
-                            
+                    + GameConstants.colorToString(userObj.getColor()) + "|" + userObj.getRadius() + "#");
+
                 boolean changed2 = false;
                 for(int i=0; i<userObj.getSubObjectsSize(); i++)
                 {
                     changed2 = true;
                     GameObject sub = userObj.getSubObject(i);
                     result.append(sub.getName() + "|" + sub.getX() + "|" + sub.getY() + "|" 
-                            + GameConstants.colorToString(sub.getColor()) + "|" + sub.getRadius() + "#");
+                        + GameConstants.colorToString(sub.getColor()) + "|" + sub.getRadius() + "#");
                 }
                 if(changed2)
                     result.deleteCharAt(result.length()-1);
-                    
+
                 result.append(",");
             }
             if(changed)
                 result.deleteCharAt(result.length()-1);
             result.append("&");
-            
+
             changed = false;
             for(GameObject worldObj : worldRemoved)
             {
                 changed = true;
                 result.append(worldObj.getName() + "|" + worldObj.getX() + "|" + worldObj.getY() + "|" 
-                            + GameConstants.colorToString(worldObj.getColor()) + "|" + worldObj.getRadius() + ",");
+                    + GameConstants.colorToString(worldObj.getColor()) + "|" + worldObj.getRadius() + ",");
             }
             if(changed)
                 result.deleteCharAt(result.length()-1);
             result.append("&");
-            
+
             changed = false;
             for(GameObject worldObj : worldAdded)
             {
                 changed = true;
                 result.append(worldObj.getName() + "|" + worldObj.getX() + "|" + worldObj.getY() + "|" 
-                            + GameConstants.colorToString(worldObj.getColor()) + "|" + worldObj.getRadius() + ",");
+                    + GameConstants.colorToString(worldObj.getColor()) + "|" + worldObj.getRadius() + ",");
             }
             if(changed)
                 result.deleteCharAt(result.length()-1);
-                
+
             result.append("&" + worldData.size());
-                
+
             worldRemoved.clear();
             worldAdded.clear();
         }
         return result.toString();
     }
-    
+
     private String getWorldData()
     {
         StringBuilder result = new StringBuilder();
@@ -356,7 +449,7 @@ public class User
             for(GameObject worldObj : worldData)
             {
                 result.append(worldObj.getName() + "|" + worldObj.getX() + "|" + worldObj.getY() + "|" 
-                            + GameConstants.colorToString(worldObj.getColor()) + "|" + worldObj.getRadius() + ",");
+                    + GameConstants.colorToString(worldObj.getColor()) + "|" + worldObj.getRadius() + ",");
             }
         }
         return result.substring(0, result.length()-1);

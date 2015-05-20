@@ -5,6 +5,7 @@ public class GameObject
 {
     private String name;
     private double x, y, radius;
+    private Vector2D velocity = new Vector2D(0,0);
     private Color playerColor;
     private ArrayList<GameObject> subObjects = new ArrayList<GameObject>();
     
@@ -23,6 +24,16 @@ public class GameObject
                playerColor == g.getColor() &&
                x == g.getX() && y == g.getY() &&
                name.equals(g.getName());
+    }
+    
+    public Vector2D getVelocity()
+    {
+        return velocity;
+    }
+    
+    public void setVelocity(Vector2D velocity)
+    {
+        this.velocity = velocity;
     }
     
     public void addSubObject(GameObject obj)

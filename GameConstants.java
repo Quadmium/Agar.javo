@@ -1,4 +1,5 @@
 import java.awt.Color;
+import java.util.ArrayList;
 
 public final class GameConstants
 {
@@ -7,6 +8,8 @@ public final class GameConstants
     public static final double FOOD_RADIUS = 0.6;
     public static final double FOOD_VOLUME = 1;
     public static final double EAT_RATIO = 1.1;
+    public static final double MIN_SPLIT_RADIUS = 1.5;
+    public static final int MAX_SPLIT = 8;
     
     public static final Color[] ALLOWED_COLORS = {
             Color.BLUE,
@@ -82,6 +85,34 @@ public final class GameConstants
     
     public static double distance(Vector2D A, Vector2D B)
     {
-        return Math.sqrt(Math.pow(A.getX() - B.getX(), 2) + Math.pow(A.getY() - B.getY(), 2));
+        return Vector2D.distance(A.getX(), A.getY(), B.getX(), B.getY());
+    }
+    
+    public static final double SPLIT_BONUS_VELOCITY_RATIO = 1.2;
+    
+    public static double maximumVelocity(double radius)
+    {
+        double k = INITIAL_VELOCITY;
+        double n = Math.log(FINAL_VELOCITY / INITIAL_VELOCITY) / Math.log(FINAL_RADIUS_VELOCITY);
+        
+        return k * Math.pow(radius, n);
+    }
+    
+    public static double calculateCombinedRadius(ArrayList<GameObject> objects)
+    {
+        double furthestDistance = Double.MIN_VALUE;
+        for(int i=0; i<objects.size(); i++)
+        {
+            GameObject a = objects.get(i);
+            for(int j=i; j<objects.size(); j++)
+            {
+                GameObject b = objects.get(j);
+                double distance2 = distance(a.getPosition(), b.getPosition()) + a.getRadius() + b.getRadius();
+                if(distance2 > furthestDistance)
+                    furthestDistance = distance2;
+            }
+        }
+        
+        return furthestDistance / 2.0;
     }
 }

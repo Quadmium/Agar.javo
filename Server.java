@@ -63,13 +63,20 @@ public class Server
                     {
                         for(int i=0; i<worldData.size(); i++)
                         {
-                            GameObject food = worldData.get(i);
-                            if(GameConstants.distance(u.getPosition(), food.getPosition()) < u.getRadius())
+                            for(int j=-1; j<u.getSubObjectsSize(); j++)
                             {
-                                u.setRadius(Math.sqrt((Math.PI * u.getRadius() * u.getRadius() + GameConstants.FOOD_VOLUME) / Math.PI));
-                                removed.add(food);
-                                worldData.remove(i);
-                                i--;
+                                if(j < 0 && u.getSubObjectsSize() > 0)
+                                    continue;
+                                    
+                                GameObject player = j==-1 ? u : u.getSubObject(j);
+                                GameObject food = worldData.get(i);
+                                if(GameConstants.distance(player.getPosition(), food.getPosition()) < player.getRadius())
+                                {
+                                    player.setRadius(Math.sqrt((Math.PI * player.getRadius() * player.getRadius() + GameConstants.FOOD_VOLUME) / Math.PI));
+                                    removed.add(food);
+                                    worldData.remove(i);
+                                    i--;
+                                }
                             }
                         }
                     }
@@ -81,10 +88,51 @@ public class Server
                             if(u == enemy)
                                 continue;
                                 
-                            if(u.getRadius() > enemy.getRadius() * GameConstants.EAT_RATIO && GameConstants.distance(u.getPosition(), enemy.getPosition()) < u.getRadius())
+                            if(u.getSubObjectsSize() == 0 && enemy.getSubObjectsSize() == 0 &&
+                               u.getRadius() > enemy.getRadius() * GameConstants.EAT_RATIO && GameConstants.distance(u.getPosition(), enemy.getPosition()) < u.getRadius())
                             {
                                 u.setRadius(Math.sqrt((Math.PI * u.getRadius() * u.getRadius() + Math.PI * enemy.getRadius() * enemy.getRadius()) / Math.PI));
                                 enemy.setRadius(0);
+                            }
+                            else if(u.getSubObjectsSize() == 0)
+                            {
+                                for(int i=0; i<enemy.getSubObjectsSize(); i++)
+                                {
+                                    if(u.getRadius() > enemy.getSubObject(i).getRadius() * GameConstants.EAT_RATIO && GameConstants.distance(u.getPosition(), enemy.getSubObject(i).getPosition()) < u.getRadius())
+                                    {
+                                        u.setRadius(Math.sqrt((Math.PI * u.getRadius() * u.getRadius() + Math.PI * enemy.getSubObject(i).getRadius() * enemy.getSubObject(i).getRadius()) / Math.PI));
+                                        enemy.removeSubObject(i);
+                                        if(enemy.getSubObjectsSize() == 0)
+                                            enemy.setRadius(0);
+                                    }
+                                }
+                            }
+                            else if(enemy.getSubObjectsSize() == 0)
+                            {
+                                for(int i=0; i<u.getSubObjectsSize(); i++)
+                                {
+                                    if(u.getSubObject(i).getRadius() > enemy.getRadius() * GameConstants.EAT_RATIO && GameConstants.distance(u.getSubObject(i).getPosition(), enemy.getPosition()) < u.getSubObject(i).getRadius())
+                                    {
+                                        u.getSubObject(i).setRadius(Math.sqrt((Math.PI * u.getSubObject(i).getRadius() * u.getSubObject(i).getRadius() + Math.PI * enemy.getRadius() * enemy.getRadius()) / Math.PI));
+                                        enemy.setRadius(0);
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                for(int i=0; i<u.getSubObjectsSize(); i++)
+                                {
+                                    for(int j=0; j<enemy.getSubObjectsSize(); j++)
+                                    {
+                                        if(u.getSubObject(i).getRadius() > enemy.getSubObject(j).getRadius() * GameConstants.EAT_RATIO && GameConstants.distance(u.getSubObject(i).getPosition(), enemy.getSubObject(j).getPosition()) < u.getSubObject(i).getRadius())
+                                        {
+                                            u.getSubObject(i).setRadius(Math.sqrt((Math.PI * u.getSubObject(i).getRadius() * u.getSubObject(i).getRadius() + Math.PI * enemy.getSubObject(j).getRadius() * enemy.getSubObject(j).getRadius()) / Math.PI));
+                                            enemy.removeSubObject(j);
+                                            if(enemy.getSubObjectsSize() == 0)
+                                                enemy.setRadius(0);
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
