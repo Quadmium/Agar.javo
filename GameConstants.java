@@ -8,9 +8,8 @@ public final class GameConstants
     public static final double FOOD_RADIUS = 0.6;
     public static final double FOOD_VOLUME = 1;
     public static final double EAT_RATIO = 1.1;
-    public static final double MIN_SPLIT_RADIUS = 1.3;
+    public static final double MIN_SPLIT_RADIUS = 1.5;
     public static final int MAX_SPLIT = 8;
-    public static final int IDEAL_FPS = 60;
     
     public static final Color[] ALLOWED_COLORS = {
             Color.BLUE,
@@ -61,9 +60,9 @@ public final class GameConstants
     public static final double FINAL_BOUNDRADIUS = 500;
     
     public static final double INITIAL_RADIUS_VELOCITY = 1; //Do not change
-    public static final double INITIAL_VELOCITY = 12;
+    public static final double INITIAL_VELOCITY = 6;
     public static final double FINAL_RADIUS_VELOCITY = 10;
-    public static final double FINAL_VELOCITY = 4;
+    public static final double FINAL_VELOCITY = 3;
 
     public static double getBoundRadius(double radius)
     {

@@ -274,30 +274,13 @@ public class AgarPanel extends JPanel implements KeyListener
 
     private class Repainter implements Runnable
     {
-        private int fpsDelay = 1000/61;
-        private int[] lastFPSCounts = new int[120];
-        private int FPSRecorderIndex = 0;
-        
         public void run()
         {
             while(true)
             {
                 try {
                     AgarPanel.this.repaint();
-                    int fps = (int)(1/((System.nanoTime() - lastFrameRendered) / 1000000000.0));
-                    lastFPSCounts[FPSRecorderIndex] = fps;
-                    if(FPSRecorderIndex == lastFPSCounts.length - 1)
-                    {
-                        int avgFPS = 0;
-                        for(int f : lastFPSCounts)
-                            avgFPS += f;
-                        avgFPS /= lastFPSCounts.length;
-                        System.out.println(avgFPS);
-                    }
-                    FPSRecorderIndex++;
-                    if(FPSRecorderIndex > lastFPSCounts.length - 1)
-                        FPSRecorderIndex = 0;
-                    Thread.sleep(fpsDelay);
+                    Thread.sleep(1000/61);
                 } catch(Exception e){}
             }
         }
