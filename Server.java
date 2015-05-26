@@ -137,6 +137,32 @@ public class Server
                         }
                     }
                     
+                    for(GameObject u : userData)
+                    {
+                        if(u.canMerge())
+                        {
+                            for(int i=0; i<u.getSubObjectsSize(); i++)
+                            {
+                                for(int j=i+1; j<u.getSubObjectsSize(); j++)
+                                {
+                                    if(GameConstants.distance(u.getSubObject(i).getPosition(), u.getSubObject(j).getPosition()) - 0.00001 <= u.getSubObject(i).getRadius())
+                                    {
+                                        if(u.getSubObjectsSize() > 2)
+                                        {
+                                            u.getSubObject(i).setRadius(Math.sqrt((Math.PI * u.getSubObject(i).getRadius() * u.getSubObject(i).getRadius() + Math.PI * u.getSubObject(j).getRadius() * u.getSubObject(j).getRadius()) / Math.PI));
+                                            u.removeSubObject(j);
+                                        }
+                                        else
+                                        {
+                                            u.setRadius(Math.sqrt((Math.PI * u.getSubObject(i).getRadius() * u.getSubObject(i).getRadius() + Math.PI * u.getSubObject(j).getRadius() * u.getSubObject(j).getRadius()) / Math.PI));
+                                            u.clearSubObjects();
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
                     while(worldData.size() < GameConstants.FOOD_GOAL)
                     {
                         GameObject food = new GameObject("F", Math.random() * GameConstants.BOARD_WIDTH,

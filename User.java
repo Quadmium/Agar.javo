@@ -7,6 +7,8 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.awt.Color;
+import java.util.Timer;
+import java.util.TimerTask;
 
 /**
  * This object handles the execution for a single user.
@@ -31,7 +33,7 @@ public class User
     private volatile boolean receivedColorRequest = false;
     private volatile boolean poison = false;
     private volatile Color playerColor = Color.BLACK;
-    private double radius = 1.0;//GameConstants.INITIAL_RADIUS;//(int)(Math.random() * 10) + 1;//GameConstants.INITIAL_RADIUS;
+    private double radius = GameConstants.INITIAL_RADIUS;
     private volatile boolean willBroadcastWorld = false;
     private volatile boolean receivedInitialWorldFromServer = false;
 
@@ -42,7 +44,8 @@ public class User
     private volatile long lastMessage = System.nanoTime();
     private final double TIMEOUT = 2.0;
     private final Object LOCK;
-    //private final Object LOCK2 = new Object();
+    
+    private int mergeTimerID = 0;
 
     public User(Socket newSocket, ArrayList<GameObject> userData, Object LOCK)
     {
@@ -51,7 +54,7 @@ public class User
         connected = true;
         this.userData = userData;
         this.LOCK = LOCK;
-        position = new Vector2D(200,200);//Math.random() * GameConstants.BOARD_WIDTH, Math.random() * GameConstants.BOARD_HEIGHT);
+        position = new Vector2D(450,450);//Math.random() * GameConstants.BOARD_WIDTH, Math.random() * GameConstants.BOARD_HEIGHT);
         userData.add(new GameObject(name, position.getX(), position.getY(), playerColor, radius));
         dataIndex = userData.size() - 1;
         inputHandler = new InputHandler();
@@ -197,6 +200,7 @@ public class User
                     {
                         out.println(getBoardData());
                     }
+                    out.flush();
                     Thread.sleep(USER_THROTTLE);
                 }
                 catch(Exception e)
@@ -252,6 +256,9 @@ public class User
                 for(int i=0; i<userData.get(dataIndex).getSubObjectsSize(); i++)
                     subObjects.add(userData.get(dataIndex).getSubObject(i));
             }
+            
+            //Others can change radius
+            radius = userData.get(dataIndex).getRadius();
 
             if(subObjects.size() == 0)
             {
@@ -286,7 +293,15 @@ public class User
                     Vector2D localVelocity = new Vector2D(velocity);
                     if(localVelocity.length() > maxV)
                         localVelocity = localVelocity.unitVector().scalarMult(maxV);
-
+                        
+                    if(g.getVelocity().length() > 0)
+                    {
+                        localVelocity = localVelocity.plus(g.getVelocity());
+                        g.setVelocity(g.getVelocity().unitVector().scalarMult(g.getVelocity().length() - GameConstants.SPLIT_DECELERATION * g.getRadius() * deltaTime));
+                        if(g.getVelocity().length() < 0)
+                            g.setVelocity(new Vector2D(0,0));
+                    }
+                    
                     Vector2D deltaP = localVelocity.scalarMult(deltaTime);
                     Vector2D localPosition = g.getPosition().plus(deltaP);
 
@@ -323,11 +338,17 @@ public class User
                 if(radius < GameConstants.MIN_SPLIT_RADIUS)
                     return;
                     
-                double dx = velocity.unitVector().scalarMult(radius / Math.sqrt(2)).getX();
-                double dy = velocity.unitVector().scalarMult(radius / Math.sqrt(2)).getY();
+                double dx = 0;//velocity.unitVector().scalarMult(radius / Math.sqrt(2)).getX();
+                double dy = 0;//velocity.unitVector().scalarMult(radius / Math.sqrt(2)).getY();
+                /*dx *= 1.2;
+                dy *= 1.2;*/
                 subObjects.add(new GameObject(name, position.getX() + dx, position.getY() + dy, playerColor, radius / Math.sqrt(2)));
                 subObjects.add(new GameObject(name, position.getX() - dx, position.getY() - dy, playerColor, radius / Math.sqrt(2)));
+                subObjects.get(0).setVelocity(velocity.unitVector().scalarMult(GameConstants.SPLIT_VELOCITY_BOOST * subObjects.get(0).getRadius()));
                 syncSubObjects();
+                mergeTimerID++;
+                userData.get(dataIndex).setMerge(false);
+                startMergeTimer(mergeTimerID);
             }
             else
             {
@@ -339,18 +360,39 @@ public class User
                 {
                     GameObject obj = subObjects.get(i);
                     if(obj.getRadius() < GameConstants.MIN_SPLIT_RADIUS)
-                        return;
-                    double dx = velocity.unitVector().scalarMult(obj.getRadius() / Math.sqrt(2)).getX();
-                    double dy = velocity.unitVector().scalarMult(obj.getRadius() / Math.sqrt(2)).getY();
+                        continue;
+                    double dx = 0;//velocity.unitVector().scalarMult(obj.getRadius() / Math.sqrt(2)).getX();
+                    double dy = 0;//velocity.unitVector().scalarMult(obj.getRadius() / Math.sqrt(2)).getY();
+                    /*dx *= 1.2;
+                    dy *= 1.2;*/
                     GameObject objSplit = new GameObject(obj.getName(), obj.getPosition().getX() - dx, obj.getPosition().getY() - dy, obj.getColor(), obj.getRadius() / Math.sqrt(2));
                     obj.setX(obj.getPosition().getX() + dx);
                     obj.setY(obj.getPosition().getY() + dy);
                     obj.setRadius(obj.getRadius() / Math.sqrt(2));
+                    obj.setVelocity(velocity.unitVector().scalarMult(GameConstants.SPLIT_VELOCITY_BOOST * obj.getRadius()));
                     subObjects.add(objSplit);
                 }
                 syncSubObjects();
+                mergeTimerID++;
+                userData.get(dataIndex).setMerge(false);
+                startMergeTimer(mergeTimerID);
             }
         }
+    }
+    
+    private void startMergeTimer(int ID)
+    {
+        Timer timer = new Timer();
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                synchronized(LOCK)
+                {
+                    if(mergeTimerID == ID)
+                        userData.get(dataIndex).setMerge(true);
+                }
+            }
+        }, GameConstants.MERGE_DELAY);
     }
     
     private void syncSubObjects()

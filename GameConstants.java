@@ -60,9 +60,9 @@ public final class GameConstants
     public static final double FINAL_BOUNDRADIUS = 500;
     
     public static final double INITIAL_RADIUS_VELOCITY = 1; //Do not change
-    public static final double INITIAL_VELOCITY = 6;
-    public static final double FINAL_RADIUS_VELOCITY = 10;
-    public static final double FINAL_VELOCITY = 3;
+    public static final double INITIAL_VELOCITY = 12;
+    public static final double VELOCITY_FLOOR = 4;
+    public static final double VELOCITY_CURVATURE = 1.1;
 
     public static double getBoundRadius(double radius)
     {
@@ -88,14 +88,13 @@ public final class GameConstants
         return Vector2D.distance(A.getX(), A.getY(), B.getX(), B.getY());
     }
     
-    public static final double SPLIT_BONUS_VELOCITY_RATIO = 1.2;
+    public static final double SPLIT_VELOCITY_BOOST = 12;
+    public static final double SPLIT_DECELERATION =  24;
+    public static final long MERGE_DELAY = 15*1000;
     
     public static double maximumVelocity(double radius)
     {
-        double k = INITIAL_VELOCITY;
-        double n = Math.log(FINAL_VELOCITY / INITIAL_VELOCITY) / Math.log(FINAL_RADIUS_VELOCITY);
-        
-        return k * Math.pow(radius, n);
+        return VELOCITY_FLOOR + (INITIAL_VELOCITY - VELOCITY_FLOOR) / (Math.pow(VELOCITY_CURVATURE, radius - INITIAL_RADIUS_VELOCITY));
     }
     
     public static double calculateCombinedRadius(ArrayList<GameObject> objects)

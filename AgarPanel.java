@@ -223,6 +223,12 @@ public class AgarPanel extends JPanel implements KeyListener
     {
         try
         {
+            if(lastUserData.size() != userData.size())
+                return position;
+                
+            if(subIndex >= 0 && (lastUserData.get(index).getSubObjectsSize() != userData.get(index).getSubObjectsSize()))
+                return position;
+                
             GameObject last = subIndex < 0 ? lastUserData.get(index) : lastUserData.get(index).getSubObject(subIndex);
             Vector2D dP = position.minus(new Vector2D(last.getX(), last.getY()));
             double dT = (lastUpdate - secondToLastUpdate) / 1000000000.0;
@@ -422,11 +428,12 @@ public class AgarPanel extends JPanel implements KeyListener
                         synchronized(LOCK){
                             velocity = new Vector2D(xPos - AgarPanel.this.getSize().getWidth()/2, yPos - AgarPanel.this.getSize().getHeight()/2);
                         }
-                        velocity = velocity.scalarMult(1.0/30.0);
+                        velocity = velocity.scalarMult(GameConstants.INITIAL_VELOCITY / 180.0);
                         out.println(velocity.getX() + "," + velocity.getY());
                     }
 
                     lastSpacePressed = spacePressed;
+                    out.flush();
                     Thread.sleep(100);
                 } catch (Exception e) {
                     System.out.println(e);
