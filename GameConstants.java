@@ -114,4 +114,16 @@ public final class GameConstants
         
         return furthestDistance / 2.0;
     }
+    
+    public static double calculateScore(GameObject obj)
+    {
+        double score = 0;
+        if(obj.getSubObjectsSize() == 0)
+            score += Math.PI * Math.pow(obj.getRadius(), 2);
+        else
+            for(int i=0; i<obj.getSubObjectsSize(); i++)
+                score += Math.PI * Math.pow(obj.getSubObject(i).getRadius(), 2);
+                
+        return score;
+    }
 }

@@ -104,7 +104,7 @@ public class Server
                                         enemy.removeSubObject(i);
                                         if(enemy.getSubObjectsSize() == 0)
                                             enemy.setRadius(0);
-                                    }
+                                   }
                                 }
                             }
                             else if(enemy.getSubObjectsSize() == 0)

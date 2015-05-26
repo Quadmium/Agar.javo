@@ -15,6 +15,8 @@ import java.awt.Color;
 import java.awt.Polygon;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.util.PriorityQueue;
+import java.awt.AlphaComposite;
 
 public class AgarPanel extends JPanel implements KeyListener
 {
@@ -46,7 +48,8 @@ public class AgarPanel extends JPanel implements KeyListener
     private volatile boolean spacePressed = false;
     private volatile boolean lastSpacePressed = false;
 
-    //TODO: Kill threads on agarPanel end
+    private volatile boolean poison = false;
+    private static final int TIMEOUT = 2;
 
     public AgarPanel(String ip, String name, Color playerColor, MainMenu parent)
     {
@@ -181,17 +184,12 @@ public class AgarPanel extends JPanel implements KeyListener
 
                         SwingUtils.outlineText(g, obj.getName(), offsetX + x, offsetY + y, Color.BLACK, Color.WHITE);
                     }
-                    
+
                     index++;
                 }
-                
-                double score = 0;
-                if(userData.get(dataIndex).getSubObjectsSize() == 0)
-                    score += Math.PI * Math.pow(radius, 2);
-                else
-                    for(int i=0; i<userData.get(dataIndex).getSubObjectsSize(); i++)
-                        score += Math.PI * Math.pow(userData.get(dataIndex).getSubObject(i).getRadius(), 2);
-                        
+
+                double score = GameConstants.calculateScore(userData.get(dataIndex));
+
                 g.setColor(Color.BLACK);
                 f = new Font("Arial",Font.BOLD,12);
                 g.setFont(f);
@@ -201,6 +199,32 @@ public class AgarPanel extends JPanel implements KeyListener
                 f = new Font("Arial",Font.BOLD,sizeNeeded);
                 g.setFont(f);
                 SwingUtils.outlineText(g, s, (int)(offsetX + g.getFontMetrics().getHeight() / 3.8), (int)(offsetY + square - g.getFontMetrics().getHeight() / 3.8), Color.BLACK, Color.WHITE);
+
+                ((Graphics2D)g).setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.7f));
+                g.setColor(new Color(16, 16, 16));
+                g.fillRect(offsetX + (int)(0.75 * square), offsetY, (int)(0.251 * square), offsetY + (int)(0.5 * square));
+                PriorityQueue<GameObject> leaderboard = new PriorityQueue<GameObject>(8, (a,b) -> new Double(GameConstants.calculateScore(b)).compareTo(GameConstants.calculateScore(a)));
+                for(GameObject u : userData)
+                    leaderboard.add(u);
+
+                g.setColor(new Color(255, 255, 255));
+                sizeNeeded = SwingUtils.getMaxFittingFontSize(g, f, "Leaderboard:", (int)(square * 0.23), (int)(0.49 * square / 9.0));
+                f = new Font("Arial",Font.BOLD,sizeNeeded);
+                g.setFont(f);
+                int x = offsetX + (int)(0.755 * square);
+                int y = offsetY + (int)(g.getFontMetrics().getHeight() / 1.3);
+                g.drawString("Leaderboard:", x, y);
+                for(int i=0; i<8 && leaderboard.size() > 0; i++)
+                {
+                    String row = (i+1) + ". " + leaderboard.poll().getName();
+                    if(row.length() == 3)
+                        row = (i+1) + ". An unnamed cell";
+                    sizeNeeded = SwingUtils.getMaxFittingFontSize(g, f, row, (int)(square * 0.23), (int)(0.49 * square / 9.0));
+                    f = new Font("Arial",Font.BOLD,sizeNeeded);
+                    g.setFont(f);
+                    g.drawString(row, x, y + square / 18 * (i+1));
+                }
+                ((Graphics2D)g).setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f));
 
                 g.setColor(Color.LIGHT_GRAY);
                 if(getWidth() > getHeight())
@@ -233,10 +257,10 @@ public class AgarPanel extends JPanel implements KeyListener
         {
             if(lastUserData.size() != userData.size())
                 return position;
-                
+
             if(subIndex >= 0 && (lastUserData.get(index).getSubObjectsSize() != userData.get(index).getSubObjectsSize()))
                 return position;
-                
+
             GameObject last = subIndex < 0 ? lastUserData.get(index) : lastUserData.get(index).getSubObject(subIndex);
             Vector2D dP = position.minus(new Vector2D(last.getX(), last.getY()));
             double dT = (lastUpdate - secondToLastUpdate) / 1000000000.0;
@@ -283,6 +307,7 @@ public class AgarPanel extends JPanel implements KeyListener
             (new Thread(new GameUpdaterIn())).start();
             (new Thread(new GameUpdaterOut())).start();
             (new Thread(new Repainter())).start();
+            (new Thread(new DisconnectWatcher())).start();
         }
     }
 
@@ -293,6 +318,8 @@ public class AgarPanel extends JPanel implements KeyListener
             while(true)
             {
                 try {
+                    if(poison)
+                        return;
                     AgarPanel.this.repaint();
                     Thread.sleep(1000/61);
                 } catch(Exception e){}
@@ -306,7 +333,9 @@ public class AgarPanel extends JPanel implements KeyListener
         {
             while(true)
             {
-                try{
+                try {
+                    if(poison)
+                        return;
                     String message = in.readLine();
                     if(message.equals("NAME"))
                     {
@@ -405,7 +434,9 @@ public class AgarPanel extends JPanel implements KeyListener
         {
             while(true)
             {
-                try{
+                try {
+                    if(poison)
+                        return;
                     if(willBroadcastName)
                     {
                         out.println("NAME " + name);
@@ -446,6 +477,24 @@ public class AgarPanel extends JPanel implements KeyListener
                 } catch (Exception e) {
                     System.out.println(e);
                 }
+            }
+        }
+    }
+
+    private class DisconnectWatcher extends Thread
+    {
+        public void run()
+        {
+            while(true)
+            {
+                double lag = (System.nanoTime() - lastUpdate) / 1000000000.0;
+                if(lag > TIMEOUT)
+                {
+                    poison = true;
+                    parent.endGame();
+                    return;
+                }
+                try{Thread.sleep(500);}catch(Exception e){}
             }
         }
     }

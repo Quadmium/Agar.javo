@@ -13,4 +13,6 @@ comment5.params=radius
 comment5.target=double\ maximumVelocity(double)
 comment6.params=objects
 comment6.target=double\ calculateCombinedRadius(java.util.ArrayList)
-numComments=7
+comment7.params=obj
+comment7.target=double\ calculateScore(GameObject)
+numComments=8

@@ -259,6 +259,11 @@ public class User
             
             //Others can change radius
             radius = userData.get(dataIndex).getRadius();
+            if(radius == 0)
+            {
+                purge();
+                return;
+            }
 
             if(subObjects.size() == 0)
             {
