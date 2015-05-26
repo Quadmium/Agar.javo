@@ -181,39 +181,47 @@ public class AgarPanel extends JPanel implements KeyListener
 
                         SwingUtils.outlineText(g, obj.getName(), offsetX + x, offsetY + y, Color.BLACK, Color.WHITE);
                     }
-
-                    g.setColor(Color.BLACK);
-                    f = new Font("Arial",Font.BOLD,12);
-                    g.setFont(f);
-                    String s = "Score: " + (int)(Math.PI * radius * radius);
-                    int sizeNeeded = SwingUtils.getMaxFittingFontSize(g, f, "Score: 1", (int)(4 * square / (2 * GameConstants.getBoundRadius(1))),
-                            (int)(2 * square / (2 * GameConstants.getBoundRadius(1))));
-                    f = new Font("Arial",Font.BOLD,sizeNeeded);
-                    g.setFont(f);
-                    SwingUtils.outlineText(g, s, (int)(offsetX + g.getFontMetrics().getHeight() / 3.8), (int)(offsetY + square - g.getFontMetrics().getHeight() / 3.8), Color.BLACK, Color.WHITE);
-
-                    g.setColor(Color.LIGHT_GRAY);
-                    if(getWidth() > getHeight())
-                    {
-                        g.fillRect(0,0,offsetX,getHeight());
-                        g.fillRect(offsetX+square,0,getWidth(),getHeight());
-                    }
-                    else
-                    {
-                        g.fillRect(0,0,getWidth(),offsetY);
-                        g.fillRect(0,offsetY+square,getWidth(),getHeight());
-                    }
-
-                    g.setColor(Color.BLACK);
-                    f = new Font("Arial",Font.BOLD,12);
-                    g.setFont(f);
-                    FontMetrics fm = g.getFontMetrics();
-                    s = "FPS: " + (int)(1/((System.nanoTime() - lastFrameRendered) / 1000000000.0))
-                    + " (" + (int)position.getX() + "," + (int)position.getY() + ")";
-                    g.drawString(s, offsetX + square - fm.stringWidth(s) - 10, 
-                        offsetY + square - g.getFontMetrics().getHeight());
+                    
                     index++;
                 }
+                
+                double score = 0;
+                if(userData.get(dataIndex).getSubObjectsSize() == 0)
+                    score += Math.PI * Math.pow(radius, 2);
+                else
+                    for(int i=0; i<userData.get(dataIndex).getSubObjectsSize(); i++)
+                        score += Math.PI * Math.pow(userData.get(dataIndex).getSubObject(i).getRadius(), 2);
+                        
+                g.setColor(Color.BLACK);
+                f = new Font("Arial",Font.BOLD,12);
+                g.setFont(f);
+                String s = "Score: " + (int)score;
+                int sizeNeeded = SwingUtils.getMaxFittingFontSize(g, f, "Score: 1", (int)(4 * square / (2 * GameConstants.getBoundRadius(1))),
+                        (int)(2 * square / (2 * GameConstants.getBoundRadius(1))));
+                f = new Font("Arial",Font.BOLD,sizeNeeded);
+                g.setFont(f);
+                SwingUtils.outlineText(g, s, (int)(offsetX + g.getFontMetrics().getHeight() / 3.8), (int)(offsetY + square - g.getFontMetrics().getHeight() / 3.8), Color.BLACK, Color.WHITE);
+
+                g.setColor(Color.LIGHT_GRAY);
+                if(getWidth() > getHeight())
+                {
+                    g.fillRect(0,0,offsetX,getHeight());
+                    g.fillRect(offsetX+square,0,getWidth(),getHeight());
+                }
+                else
+                {
+                    g.fillRect(0,0,getWidth(),offsetY);
+                    g.fillRect(0,offsetY+square,getWidth(),getHeight());
+                }
+
+                g.setColor(Color.BLACK);
+                f = new Font("Arial",Font.BOLD,12);
+                g.setFont(f);
+                FontMetrics fm = g.getFontMetrics();
+                s = "FPS: " + (int)(1/((System.nanoTime() - lastFrameRendered) / 1000000000.0))
+                + " (" + (int)position.getX() + "," + (int)position.getY() + ")";
+                g.drawString(s, offsetX + square - fm.stringWidth(s) - 10, 
+                    offsetY + square - g.getFontMetrics().getHeight());
             }
             lastFrameRendered = System.nanoTime();
         }
