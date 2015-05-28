@@ -1,6 +1,9 @@
 import java.awt.Color;
 import java.util.ArrayList;
 
+/**
+ * Stores data for an object, such as position, color, and name.
+ */
 public class GameObject
 {
     private String name;

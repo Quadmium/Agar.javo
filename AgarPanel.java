@@ -18,6 +18,15 @@ import java.awt.event.KeyListener;
 import java.util.PriorityQueue;
 import java.awt.AlphaComposite;
 
+/**
+ * Hosts the client code for the Agar game. The client is responsible for displaying the game as
+ * specified by the server and sending the mouse coordinates.
+ * 
+ * @see MainMenu
+ * 
+ * @author Quadmium
+ */
+
 public class AgarPanel extends JPanel implements KeyListener
 {
     private volatile boolean connecting = true;
@@ -51,6 +60,13 @@ public class AgarPanel extends JPanel implements KeyListener
     private volatile boolean poison = false;
     private static final int TIMEOUT = 2;
 
+    /**
+     * Setup a new game panel.
+     * 
+     * @param ip the IP of the server
+     * @param playerColor the player's requested color
+     * @param parent the parent MainMenu
+     */
     public AgarPanel(String ip, String name, Color playerColor, MainMenu parent)
     {
         super();
@@ -64,6 +80,9 @@ public class AgarPanel extends JPanel implements KeyListener
         requestFocusInWindow();
     }
 
+    /**
+     * Paints the screen.
+     */
     @Override
     public void paintComponent(Graphics g)
     {
@@ -251,6 +270,16 @@ public class AgarPanel extends JPanel implements KeyListener
         }
     }
 
+    /**
+     * Computes the approximate change in position based on the last update (tangent velocity).
+     * 
+     * @param position the current position
+     * @param deltaTime the change in time
+     * @param index index of the player
+     * @param subIndex index of the sub object if exists, otherwise -1
+     * 
+     * @return the approximate position
+     */
     private Vector2D computeDeltaP(Vector2D position, double deltaTime, int index, int subIndex)
     {
         try
@@ -275,11 +304,17 @@ public class AgarPanel extends JPanel implements KeyListener
         }
     }
 
+    /**
+     * Starts a connection thread with the server.
+     */
     public void connect()
     {
         (new Thread(new Connector())).start();
     }
 
+    /**
+     * Connects to the server. Starts I/O threads, timeout thread, and repaint thread.
+     */
     private class Connector implements Runnable
     {
         public void run()
@@ -311,6 +346,10 @@ public class AgarPanel extends JPanel implements KeyListener
         }
     }
 
+    /**
+     * Adds the repaint call to the queue every 60th of a second. If calls are not able to be drawn as fast, they will
+     * bunched together by Swing.
+     */
     private class Repainter implements Runnable
     {
         public void run()
@@ -327,6 +366,9 @@ public class AgarPanel extends JPanel implements KeyListener
         }
     }
 
+    /**
+     * Reads info from the server and updates local info accordingly.
+     */
     private class GameUpdaterIn implements Runnable
     {   
         public void run()
@@ -428,6 +470,9 @@ public class AgarPanel extends JPanel implements KeyListener
         }
     }
 
+    /**
+     * Sends info to the server.
+     */
     private class GameUpdaterOut implements Runnable
     {   
         public void run()
@@ -480,7 +525,10 @@ public class AgarPanel extends JPanel implements KeyListener
             }
         }
     }
-
+    
+    /**
+     * Watches for time passed between every update. Can close the game if timeout exceeds specified.
+     */
     private class DisconnectWatcher extends Thread
     {
         public void run()

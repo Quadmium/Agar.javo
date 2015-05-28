@@ -3,6 +3,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Timer;
 
+/**
+ * Runs a server for the Agar game.
+ * 
+ * @author Quadmium
+ */
 public class Server
 {
     private static final int PORT = 40124;
@@ -16,6 +21,9 @@ public class Server
     private ArrayList<GameObject> worldData = new ArrayList<GameObject>();
     private final Object LOCK = new Object();
     
+    /**
+     * Starts world update thread, a client adder thread, and a client remover thread.
+     */
     public Server()
     {
         try {
@@ -32,12 +40,11 @@ public class Server
         (new Thread(new ClientRemoverThread())).start();
     }
     
+    /*
+     * Updates the game world and updates the clients' information.
+     */
     private class worldUpdateThread implements Runnable
     {
-        //Update all clients' positions
-        //Update food
-        //Tell them to send info back to player
-        
         public void run()
         {
             long lastUpdate = System.nanoTime();
@@ -192,6 +199,9 @@ public class Server
         }
     }
     
+    /**
+     * Adds clients to the world with a new User object. Waits for new clients to connect.
+     */
     private class ClientAdderThread implements Runnable
     {
         public void run()
@@ -217,6 +227,9 @@ public class Server
         }
     }
     
+    /**
+     * Removes timed out clients.
+     */
     private class ClientRemoverThread implements Runnable
     {
         public void run()

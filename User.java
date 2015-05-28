@@ -11,7 +11,9 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 /**
- * This object handles the execution for a single user.
+ * Handles the connection for a single user.
+ * 
+ * @author Quadmium
  */
 public class User
 {

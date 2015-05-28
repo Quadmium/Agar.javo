@@ -1,12 +1,16 @@
 #BlueJ class context
 comment0.params=ip\ name\ playerColor\ parent
 comment0.target=AgarPanel(java.lang.String,\ java.lang.String,\ java.awt.Color,\ MainMenu)
+comment0.text=\r\n\ Setup\ a\ new\ game\ panel.\r\n\ \r\n\ @param\ ip\ the\ IP\ of\ the\ server\r\n\ @param\ playerColor\ the\ player's\ requested\ color\r\n\ @param\ parent\ the\ parent\ MainMenu\r\n
 comment1.params=g
 comment1.target=void\ paintComponent(java.awt.Graphics)
+comment1.text=\r\n\ Paints\ the\ screen.\r\n
 comment2.params=position\ deltaTime\ index\ subIndex
 comment2.target=Vector2D\ computeDeltaP(Vector2D,\ double,\ int,\ int)
+comment2.text=\r\n\ Computes\ the\ approximate\ change\ in\ position\ based\ on\ the\ last\ update\ (tangent\ velocity).\r\n\ \r\n\ @param\ position\ the\ current\ position\r\n\ @param\ deltaTime\ the\ change\ in\ time\r\n\ @param\ index\ index\ of\ the\ player\r\n\ @param\ subIndex\ index\ of\ the\ sub\ object\ if\ exists,\ otherwise\ -1\r\n\ \r\n\ @return\ the\ approximate\ position\r\n
 comment3.params=
 comment3.target=void\ connect()
+comment3.text=\r\n\ Starts\ a\ connection\ thread\ with\ the\ server.\r\n
 comment4.params=e
 comment4.target=void\ keyTyped(java.awt.event.KeyEvent)
 comment5.params=e

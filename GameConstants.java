@@ -1,6 +1,9 @@
 import java.awt.Color;
 import java.util.ArrayList;
 
+/**
+ * Class to calculate constants and store game properties.
+ */
 public final class GameConstants
 {
     public static final double BOARD_WIDTH = 500, BOARD_HEIGHT = 500;

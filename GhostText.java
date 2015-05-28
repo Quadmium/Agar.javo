@@ -13,6 +13,9 @@ import javax.swing.SwingUtilities;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 
+/**
+ * Class to draw gray text which disappears on click.
+ */
 public class GhostText implements FocusListener, DocumentListener, PropertyChangeListener {
     private final JTextField textfield;
     private boolean isEmpty;

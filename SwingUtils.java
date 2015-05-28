@@ -7,6 +7,11 @@ import java.awt.Font;
 import java.awt.FontMetrics;
 import javax.swing.*;
 
+/**
+ * Utility class for the drawing part of the client.
+ * 
+ * @see AgarPanel
+ */
 public final class SwingUtils
 {
     public static JPanel center(JComponent component)

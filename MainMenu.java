@@ -5,6 +5,12 @@ import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.Dimension;
 
+/**
+ * Shows the server selection screen and transitions to the Agar panel.
+ * All visible parts occur inside this JFrame.
+ * 
+ * @author Quadmium
+ */
 public class MainMenu
 {
     private JTextField nameField;
@@ -22,6 +28,9 @@ public class MainMenu
         new MainMenu();
     }
     
+    /**
+     * Sets up the server selection menu.
+     */
     public MainMenu()
     {
         try{UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());}catch(Exception e){}
@@ -77,6 +86,9 @@ public class MainMenu
         panel.add(bottomPanel, BorderLayout.SOUTH);
     }
     
+    /**
+     * When connect is clicked, this void shows a new instance of the AgarPanel class.
+     */
     private void onConnectButton()
     {
         String ip = (String)centerList.getSelectedValue();
@@ -93,6 +105,9 @@ public class MainMenu
         agar.requestFocus();
     }
     
+    /**
+     * Removes the AgarPanel component and shows the original server selection screen.
+     */
     public void endGame()
     {
         frame.remove(agar);
