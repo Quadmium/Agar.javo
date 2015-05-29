@@ -83,6 +83,14 @@ public class Server
                             Vector2D deltaP = food.getVelocity().scalarMult(deltaTime);
                             food.setX(food.getX() + deltaP.getX());
                             food.setY(food.getY() + deltaP.getY());
+                            if(food.getPosition().getX() + food.getRadius() > GameConstants.BOARD_WIDTH)
+                                food.setPosition(new Vector2D(GameConstants.BOARD_WIDTH - food.getRadius(), food.getPosition().getY()));
+                            if(food.getPosition().getY() + food.getRadius() > GameConstants.BOARD_HEIGHT)
+                                food.setPosition(new Vector2D(food.getPosition().getX(), GameConstants.BOARD_HEIGHT - food.getRadius()));
+                            if(food.getPosition().getX() - food.getRadius() < 0)
+                                food.setPosition(new Vector2D(food.getRadius(), food.getPosition().getY()));
+                            if(food.getPosition().getY() - food.getRadius() < 0)
+                                food.setPosition(new Vector2D(food.getPosition().getX(), food.getRadius()));
                             food.setVelocity(food.getVelocity().unitVector().scalarMult(food.getVelocity().length() - GameConstants.THROW_MASS_DECELERATION * deltaTime));
                             moved.add(food);
                         }

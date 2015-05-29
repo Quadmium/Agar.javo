@@ -418,9 +418,9 @@ public class User
                     continue;
                     
                 Vector2D thrownPosition = i==-1 ? position : subObjects.get(i).getPosition();
+                thrownPosition = thrownPosition.plus(velocity.unitVector().scalarMult(radiusA));
                 GameObject thrown = new GameObject("T_" + thrownMassID++, thrownPosition.getX(), thrownPosition.getY(), playerColor, Math.sqrt(GameConstants.THROW_MASS_VOLUME / Math.PI));
                 Vector2D localVelocity = velocity.unitVector().scalarMult(GameConstants.THROW_MASS_SPEED + GameConstants.maximumVelocity(radiusA));
-                thrownPosition = thrownPosition.plus(localVelocity.unitVector().scalarMult(radiusA));
                 thrown.setVelocity(localVelocity);
                 if(i==-1)
                 {

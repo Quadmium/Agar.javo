@@ -101,6 +101,12 @@ public class GameObject
         return new Vector2D(x, y);
     }
     
+    public void setPosition(Vector2D position)
+    {
+        x = position.getX();
+        y = position.getY();
+    }
+    
     public double getRadius()
     {
         return radius;
