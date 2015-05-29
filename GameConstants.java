@@ -13,6 +13,11 @@ public final class GameConstants
     public static final double EAT_RATIO = 1.1;
     public static final double MIN_SPLIT_RADIUS = 1.5;
     public static final int MAX_SPLIT = 8;
+    public static final double PUSH_FACTOR = 0.1;
+    public static final double THROW_MASS_VOLUME = 8;
+    public static final double THROW_MASS_SPEED = 20;
+    public static final double THROW_MASS_DECELERATION = 20;
+    public static final long EATABLE_DELAY = 2000;
     
     public static final Color[] ALLOWED_COLORS = {
             Color.BLUE,

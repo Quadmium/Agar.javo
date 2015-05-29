@@ -29,7 +29,9 @@ public class User
     private ArrayList<GameObject> worldData = new ArrayList<GameObject>();
     private ArrayList<GameObject> worldRemoved = new ArrayList<GameObject>();
     private ArrayList<GameObject> worldAdded = new ArrayList<GameObject>();
+    private ArrayList<GameObject> worldMoved = new ArrayList<GameObject>();
     private ArrayList<GameObject> subObjects = new ArrayList<GameObject>();
+    private ArrayList<GameObject> worldAdditions = new ArrayList<GameObject>();
     private volatile String name = "";
     private volatile boolean receivedNameRequest = false;
     private volatile boolean receivedColorRequest = false;
@@ -48,6 +50,7 @@ public class User
     private final Object LOCK;
     
     private int mergeTimerID = 0;
+    private static int thrownMassID = 0;
 
     public User(Socket newSocket, ArrayList<GameObject> userData, Object LOCK)
     {
@@ -147,6 +150,10 @@ public class User
                     else if(message.equals("SPLIT"))
                     {
                         splitCharacter();
+                    }
+                    else if(message.equals("THROW"))
+                    {
+                        throwMass();
                     }
                     else if(message.length() > 0)
                     {
@@ -266,6 +273,9 @@ public class User
                 purge();
                 return;
             }
+            
+            //Others can change position
+            position = userData.get(dataIndex).getPosition();
 
             if(subObjects.size() == 0)
             {
@@ -292,6 +302,7 @@ public class User
             else
             {
                 Vector2D avgPos = new Vector2D(0,0);
+                boolean pushSubTogether = velocity.length() < GameConstants.INITIAL_VELOCITY;
                 int index = 0;
                 for(GameObject g : subObjects)
                 {
@@ -300,6 +311,12 @@ public class User
                     Vector2D localVelocity = new Vector2D(velocity);
                     if(localVelocity.length() > maxV)
                         localVelocity = localVelocity.unitVector().scalarMult(maxV);
+                        
+                    if(pushSubTogether)
+                    {
+                        Vector2D direction = position.minus(g.getPosition());
+                        localVelocity = localVelocity.plus(direction.scalarMult(GameConstants.PUSH_FACTOR));
+                    }
                         
                     if(g.getVelocity().length() > 0)
                     {
@@ -387,6 +404,50 @@ public class User
         }
     }
     
+    private void throwMass()
+    {
+        synchronized(LOCK)
+        {
+            for(int i=-1; i<subObjects.size(); i++)
+            {
+                if(i<0 && subObjects.size() > 0)
+                    continue;
+                    
+                double radiusA = i==-1 ? radius : subObjects.get(i).getRadius();
+                if(GameConstants.THROW_MASS_VOLUME * 2 > Math.pow(radiusA, 2) * Math.PI)
+                    continue;
+                    
+                Vector2D thrownPosition = i==-1 ? position : subObjects.get(i).getPosition();
+                GameObject thrown = new GameObject("T_" + thrownMassID++, thrownPosition.getX(), thrownPosition.getY(), playerColor, Math.sqrt(GameConstants.THROW_MASS_VOLUME / Math.PI));
+                Vector2D localVelocity = velocity.unitVector().scalarMult(GameConstants.THROW_MASS_SPEED + GameConstants.maximumVelocity(radiusA));
+                thrownPosition = thrownPosition.plus(localVelocity.unitVector().scalarMult(radiusA));
+                thrown.setVelocity(localVelocity);
+                if(i==-1)
+                {
+                    radius = Math.sqrt((Math.pow(radius, 2) * Math.PI - GameConstants.THROW_MASS_VOLUME) / Math.PI);
+                    userData.get(dataIndex).setRadius(radius);
+                }
+                else
+                {
+                    subObjects.get(i).setRadius(Math.sqrt((Math.pow(subObjects.get(i).getRadius(), 2) * Math.PI - GameConstants.THROW_MASS_VOLUME) / Math.PI));
+                    userData.get(dataIndex).getSubObject(i).setRadius(subObjects.get(i).getRadius());
+                }
+                worldAdditions.add(thrown);
+                thrown.setEatable(false);
+                startEatableTimer(thrown);
+            }
+        }
+    }
+    
+    public ArrayList<GameObject> getWorldAdditions()
+    {
+        ArrayList<GameObject> out = new ArrayList<GameObject>();
+        for(GameObject g : worldAdditions)
+            out.add(g);
+        worldAdditions.clear();
+        return out;
+    }
+    
     private void startMergeTimer(int ID)
     {
         Timer timer = new Timer();
@@ -400,6 +461,20 @@ public class User
                 }
             }
         }, GameConstants.MERGE_DELAY);
+    }
+    
+    private void startEatableTimer(GameObject g)
+    {
+        Timer timer = new Timer();
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                synchronized(LOCK)
+                {
+                    g.setEatable(true);
+                }
+            }
+        }, GameConstants.EATABLE_DELAY);
     }
     
     private void syncSubObjects()
@@ -425,6 +500,12 @@ public class User
     public void addToWorldAdded(GameObject worldObj)
     {
         worldAdded.add(worldObj);
+    }
+    
+    public void addToWorldMoved(GameObject worldObj)
+    {
+        if(!worldMoved.contains(worldObj))
+            worldMoved.add(worldObj);
     }
 
     public void setIndex(int index)
@@ -481,11 +562,22 @@ public class User
             }
             if(changed)
                 result.deleteCharAt(result.length()-1);
+            result.append("&");
+                
+            changed = false;
+            for(GameObject worldObj : worldMoved)
+            {
+                changed = true;
+                result.append(worldObj.getName() + "|" + worldObj.getX() + "|" + worldObj.getY() + ",");
+            }
+            if(changed)
+                result.deleteCharAt(result.length()-1);
 
             result.append("&" + worldData.size());
 
             worldRemoved.clear();
             worldAdded.clear();
+            worldMoved.clear();
         }
         return result.toString();
     }

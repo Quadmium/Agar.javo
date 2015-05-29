@@ -8,10 +8,10 @@ public class GameObject
 {
     private String name;
     private double x, y, radius;
-    private Vector2D velocity = new Vector2D(0,0);
+    private Vector2D velocity = new Vector2D(0,0), prevPos = new Vector2D(0,0);
     private Color playerColor;
     private ArrayList<GameObject> subObjects = new ArrayList<GameObject>();
-    private boolean merge = true;
+    private boolean merge = true, eatable = true;
     
     public GameObject(String name, double x, double y, Color playerColor, double radius)
     {
@@ -28,6 +28,16 @@ public class GameObject
                playerColor == g.getColor() &&
                x == g.getX() && y == g.getY() &&
                name.equals(g.getName());
+    }
+    
+    public boolean eatable()
+    {
+        return eatable;
+    }
+    
+    public void setEatable(boolean eatable)
+    {
+        this.eatable = eatable;
     }
     
     public boolean canMerge()

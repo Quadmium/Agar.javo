@@ -10,6 +10,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.awt.MouseInfo;
 import java.awt.Color;
 import java.awt.Polygon;
@@ -41,6 +42,7 @@ public class AgarPanel extends JPanel implements KeyListener
     private ArrayList<GameObject> userData = new ArrayList<GameObject>();
     private ArrayList<GameObject> lastUserData = new ArrayList<GameObject>();
     private ArrayList<GameObject> worldData = new ArrayList<GameObject>();
+    private HashMap<String, GameObject> lastThrownData = new HashMap<String, GameObject>();
     private final Object LOCK = new Object();
     private volatile int dataIndex = -1;
     private volatile PrintWriter out;
@@ -56,6 +58,8 @@ public class AgarPanel extends JPanel implements KeyListener
 
     private volatile boolean spacePressed = false;
     private volatile boolean lastSpacePressed = false;
+    private volatile boolean wPressed = false;
+    private volatile boolean lastWPressed = false;
 
     private volatile boolean poison = false;
     private static final int TIMEOUT = 2;
@@ -150,6 +154,10 @@ public class AgarPanel extends JPanel implements KeyListener
                         continue;
 
                     Vector2D objPosition_unshifted = new Vector2D(obj.getX(), obj.getY());
+                    if(obj.getName().startsWith("T"))
+                    {
+                        objPosition_unshifted = computeDeltaP(objPosition_unshifted, (System.nanoTime() - lastUpdate) / 1000000000.0, obj.getName());
+                    }
                     Vector2D shiftedPosition = new Vector2D(objPosition_unshifted.getX() - (estimatedPlayerPosition_unshifted.getX() - boundRadius), 
                             objPosition_unshifted.getY() - (estimatedPlayerPosition_unshifted.getY() - boundRadius));
 
@@ -303,6 +311,35 @@ public class AgarPanel extends JPanel implements KeyListener
             return position;
         }
     }
+    
+    /**
+     * Computes the approximate change in position based on the last update for a mass object (tangent velocity).
+     * 
+     * @param position the current position
+     * @param deltaTime the change in time
+     * @param name name of the object ("T" followed by a unique ID)
+     * 
+     * @return the approximate position
+     */
+    private Vector2D computeDeltaP(Vector2D position, double deltaTime, String name)
+    {
+        try
+        {
+            if(!lastThrownData.containsKey(name))
+                return position;
+
+            GameObject last = lastThrownData.get(name);
+            Vector2D dP = position.minus(new Vector2D(last.getX(), last.getY()));
+            double dT = (lastUpdate - secondToLastUpdate) / 1000000000.0;
+            Vector2D velocity = dP.scalarMult(1.0/dT);
+            Vector2D predictedDP = velocity.scalarMult(deltaTime);
+            return position.plus(predictedDP);
+        }
+        catch(Exception e)
+        {
+            return position;
+        }
+    }
 
     /**
      * Starts a connection thread with the server.
@@ -407,7 +444,8 @@ public class AgarPanel extends JPanel implements KeyListener
                         String[] messageContents_0 = messageContents[0].split(","); //User data
                         String[] messageContents_1 = messageContents[1].split(","); //World removed
                         String[] messageContents_2 = messageContents[2].split(","); //World added
-                        int serverWorldDataSize = Integer.parseInt(messageContents[3]); //Actual world size
+                        String[] messageContents_3 = messageContents[3].split(","); //World moved
+                        int serverWorldDataSize = Integer.parseInt(messageContents[4]); //Actual world size
                         dataIndex = Integer.parseInt(messageContents_0[0]);
                         synchronized(LOCK){
                             lastUserData = userData;
@@ -450,6 +488,33 @@ public class AgarPanel extends JPanel implements KeyListener
                                 String[] objData = add.split("\\|");
                                 worldData.add(new GameObject(objData[0], Double.parseDouble(objData[1]), Double.parseDouble(objData[2]),
                                         GameConstants.stringToColor(objData[3]), Double.parseDouble(objData[4])));
+                            }
+                            
+                            for(String move : messageContents_3)
+                            {
+                                if(move.equals(""))
+                                    continue;
+                                String[] objData = move.split("\\|");
+
+                                for(int i=0; i<worldData.size(); i++)
+                                    if(worldData.get(i).getName().equals(objData[0]))
+                                    {
+                                        GameObject moved = worldData.get(i);
+                                        
+                                        if(lastThrownData.containsKey(objData[0]))
+                                        {
+                                            lastThrownData.get(objData[0]).setX(moved.getX());
+                                            lastThrownData.get(objData[0]).setY(moved.getY());
+                                        }
+                                        else
+                                        {
+                                            lastThrownData.put(moved.getName(), new GameObject(moved.getName(), moved.getX(), moved.getY(), moved.getColor(), moved.getRadius()));
+                                        }
+                                        
+                                        moved.setX(Double.parseDouble(objData[1]));
+                                        moved.setY(Double.parseDouble(objData[2]));
+                                        break;
+                                    }
                             }
 
                             if(worldData.size() != serverWorldDataSize)
@@ -504,6 +569,9 @@ public class AgarPanel extends JPanel implements KeyListener
 
                         if(lastSpacePressed && !spacePressed)
                             out.println("SPLIT");
+                            
+                        if(lastWPressed && !wPressed)
+                            out.println("THROW");
 
                         double xPos = MouseInfo.getPointerInfo().getLocation().getX() - AgarPanel.this.getLocationOnScreen().getX();
                         double yPos = MouseInfo.getPointerInfo().getLocation().getY() - AgarPanel.this.getLocationOnScreen().getY();
@@ -517,6 +585,7 @@ public class AgarPanel extends JPanel implements KeyListener
                     }
 
                     lastSpacePressed = spacePressed;
+                    lastWPressed = wPressed;
                     out.flush();
                     Thread.sleep(100);
                 } catch (Exception e) {
@@ -548,20 +617,25 @@ public class AgarPanel extends JPanel implements KeyListener
     }
 
     @Override
-    public void keyTyped(KeyEvent e) {
+    public void keyTyped(KeyEvent e) 
+    {
     }
 
     @Override
-    public void keyPressed(KeyEvent e) {
-        if (e.getKeyCode() == KeyEvent.VK_SPACE) {
+    public void keyPressed(KeyEvent e) 
+    {
+        if (e.getKeyCode() == KeyEvent.VK_SPACE)
             spacePressed = true;
-        }
+        else if(e.getKeyCode() == KeyEvent.VK_W)
+            wPressed = true;
     }
 
     @Override
-    public void keyReleased(KeyEvent e) {
-        if (e.getKeyCode() == KeyEvent.VK_SPACE) {
+    public void keyReleased(KeyEvent e) 
+    {
+        if (e.getKeyCode() == KeyEvent.VK_SPACE)
             spacePressed = false;
-        }
+        else if(e.getKeyCode() == KeyEvent.VK_W)
+            wPressed = false;
     }
 }

@@ -65,21 +65,54 @@ public class Server
                 synchronized(LOCK) {
                     ArrayList<GameObject> removed = new ArrayList<GameObject>();
                     ArrayList<GameObject> added = new ArrayList<GameObject>();
+                    ArrayList<GameObject> moved = new ArrayList<GameObject>();
+                    
+                    for(User u : users)
+                    {
+                        for(GameObject g : u.getWorldAdditions())
+                        {
+                            worldData.add(g);
+                            added.add(g);
+                        }
+                    }
+                    
+                    for(GameObject food : worldData)
+                    {
+                        if(food.getName().startsWith("T") && food.getVelocity().length() > 0.1)
+                        {
+                            Vector2D deltaP = food.getVelocity().scalarMult(deltaTime);
+                            food.setX(food.getX() + deltaP.getX());
+                            food.setY(food.getY() + deltaP.getY());
+                            food.setVelocity(food.getVelocity().unitVector().scalarMult(food.getVelocity().length() - GameConstants.THROW_MASS_DECELERATION * deltaTime));
+                            moved.add(food);
+                        }
+                    }
                     
                     for(GameObject u : userData)
                     {
                         for(int i=0; i<worldData.size(); i++)
                         {
+                            GameObject food = worldData.get(i);
+                            
                             for(int j=-1; j<u.getSubObjectsSize(); j++)
                             {
                                 if(j < 0 && u.getSubObjectsSize() > 0)
                                     continue;
                                     
                                 GameObject player = j==-1 ? u : u.getSubObject(j);
-                                GameObject food = worldData.get(i);
                                 if(GameConstants.distance(player.getPosition(), food.getPosition()) < player.getRadius())
                                 {
-                                    player.setRadius(Math.sqrt((Math.PI * player.getRadius() * player.getRadius() + GameConstants.FOOD_VOLUME) / Math.PI));
+                                    double volume = 0;
+                                    if(food.getName().equals("F"))
+                                        volume += GameConstants.FOOD_VOLUME;
+                                    else if(food.getName().startsWith("T"))
+                                    {
+                                        if(!food.eatable())
+                                            continue;
+                                        volume += GameConstants.THROW_MASS_VOLUME;
+                                    }
+                                        
+                                    player.setRadius(Math.sqrt((Math.PI * player.getRadius() * player.getRadius() + volume) / Math.PI));
                                     removed.add(food);
                                     worldData.remove(i);
                                     i--;
@@ -152,16 +185,22 @@ public class Server
                             {
                                 for(int j=i+1; j<u.getSubObjectsSize(); j++)
                                 {
-                                    if(GameConstants.distance(u.getSubObject(i).getPosition(), u.getSubObject(j).getPosition()) - 0.00001 <= u.getSubObject(i).getRadius())
+                                    if(GameConstants.distance(u.getSubObject(i).getPosition(), u.getSubObject(j).getPosition()) - 0.00001 <=
+                                    (u.getSubObject(i).getRadius() > u.getSubObject(j).getRadius() ? u.getSubObject(i).getRadius() : u.getSubObject(j).getRadius()))
                                     {
                                         if(u.getSubObjectsSize() > 2)
                                         {
-                                            u.getSubObject(i).setRadius(Math.sqrt((Math.PI * u.getSubObject(i).getRadius() * u.getSubObject(i).getRadius() + Math.PI * u.getSubObject(j).getRadius() * u.getSubObject(j).getRadius()) / Math.PI));
-                                            u.removeSubObject(j);
+                                            int biggerIndex = u.getSubObject(i).getRadius() > u.getSubObject(j).getRadius() ? i : j;
+                                            int smallerIndex = biggerIndex == i ? j : i;
+                                            u.getSubObject(biggerIndex).setRadius(Math.sqrt((Math.PI * Math.pow(u.getSubObject(biggerIndex).getRadius(),2) + Math.PI * Math.pow(u.getSubObject(smallerIndex).getRadius(),2)) / Math.PI));
+                                            u.removeSubObject(smallerIndex);
                                         }
                                         else
                                         {
                                             u.setRadius(Math.sqrt((Math.PI * u.getSubObject(i).getRadius() * u.getSubObject(i).getRadius() + Math.PI * u.getSubObject(j).getRadius() * u.getSubObject(j).getRadius()) / Math.PI));
+                                            Vector2D biggerRadiusPosition = u.getSubObject(i).getRadius() > u.getSubObject(j).getRadius() ? u.getSubObject(i).getPosition() : u.getSubObject(j).getPosition();
+                                            u.setX(biggerRadiusPosition.getX());
+                                            u.setY(biggerRadiusPosition.getY());
                                             u.clearSubObjects();
                                         }
                                     }
@@ -186,6 +225,8 @@ public class Server
                             u.addToWorldRemoved(g);
                         for(GameObject g : added)
                             u.addToWorldAdded(g);
+                        for(GameObject g : moved)
+                            u.addToWorldMoved(g);
                             
                         u.move(deltaTime);
                         u.setWorld(worldData);
@@ -244,7 +285,6 @@ public class Server
                         {
                             System.out.println(users.get(i)+" removed due to lack of connection.");
                             users.get(i).purge();
-                            try{Thread.sleep(15);}catch(Exception e){}
                             users.remove(i);
                             userData.remove(i);
                             i--;
