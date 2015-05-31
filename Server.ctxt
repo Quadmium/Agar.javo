@@ -1,5 +1,0 @@
-#BlueJ class context
-comment0.params=
-comment0.target=Server()
-comment0.text=\r\n\ Starts\ world\ update\ thread,\ a\ client\ adder\ thread,\ and\ a\ client\ remover\ thread.\r\n
-numComments=1
