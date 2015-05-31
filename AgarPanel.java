@@ -517,8 +517,9 @@ public class AgarPanel extends JPanel implements KeyListener
                                     }
                             }
 
-                            if(worldData.size() != serverWorldDataSize)
+                            if(Math.abs(worldData.size() - serverWorldDataSize) > GameConstants.WORLD_ALLOWANCE)
                             {
+                                System.out.println("brok");
                                 receivedWorld = false;
                             }
                             AgarPanel.this.radius = userData.get(dataIndex).getRadius();
@@ -569,19 +570,32 @@ public class AgarPanel extends JPanel implements KeyListener
 
                         if(lastSpacePressed && !spacePressed)
                             out.println("SPLIT");
-                            
-                        if(lastWPressed && !wPressed)
-                            out.println("THROW");
-
+                        
                         double xPos = MouseInfo.getPointerInfo().getLocation().getX() - AgarPanel.this.getLocationOnScreen().getX();
                         double yPos = MouseInfo.getPointerInfo().getLocation().getY() - AgarPanel.this.getLocationOnScreen().getY();
 
-                        Vector2D velocity;
-                        synchronized(LOCK){
+                        synchronized(LOCK)
+                        {
+                            Vector2D velocity;
                             velocity = new Vector2D(xPos - AgarPanel.this.getSize().getWidth()/2, yPos - AgarPanel.this.getSize().getHeight()/2);
+                            Vector2D adjVelocity = velocity.scalarMult(GameConstants.INITIAL_VELOCITY / 180.0);
+                            out.println(adjVelocity.getX() + "," + adjVelocity.getY());
+                              
+                            if(lastWPressed && !wPressed)
+                            {
+                                double boundRadius = GameConstants.getBoundRadius(radius);
+                                int square;
+                                if(getWidth() > getHeight())
+                                    square = getHeight();
+                                else
+                                    square = getWidth();
+                                double scale = square / (boundRadius*2);
+                                
+                                Vector2D estPlayerPos = computeDeltaP(position, (System.nanoTime() - lastUpdate) / 1000000000.0, dataIndex, -1);
+                                Vector2D target = estPlayerPos.plus(velocity.scalarMult(1.0 / scale));
+                                out.println("THROW," + target.getX() + "," + target.getY());
+                            }
                         }
-                        velocity = velocity.scalarMult(GameConstants.INITIAL_VELOCITY / 180.0);
-                        out.println(velocity.getX() + "," + velocity.getY());
                     }
 
                     lastSpacePressed = spacePressed;

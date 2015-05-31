@@ -6,7 +6,7 @@ import java.util.ArrayList;
  */
 public final class GameConstants
 {
-    public static final double BOARD_WIDTH = 500, BOARD_HEIGHT = 500;
+    public static final int BOARD_WIDTH = 500, BOARD_HEIGHT = 500;
     public static final int FOOD_GOAL = 4000;
     public static final double FOOD_RADIUS = 0.6;
     public static final double FOOD_VOLUME = 1;
@@ -18,6 +18,8 @@ public final class GameConstants
     public static final double THROW_MASS_SPEED = 20;
     public static final double THROW_MASS_DECELERATION = 20;
     public static final long EATABLE_DELAY = 2000;
+    public static final int GRID_SIZE = BOARD_WIDTH / 10;
+    public static final int WORLD_ALLOWANCE = 5;
     
     public static final Color[] ALLOWED_COLORS = {
             Color.BLUE,
@@ -133,5 +135,35 @@ public final class GameConstants
                 score += Math.PI * Math.pow(obj.getSubObject(i).getRadius(), 2);
                 
         return score;
+    }
+    
+    public static int[] gridBucket(Vector2D position)
+    {
+        int x = (int)(position.getX() * GRID_SIZE / BOARD_HEIGHT);
+        int y = (int)(position.getY() * GRID_SIZE / BOARD_HEIGHT);
+        
+        if(x < 0)
+            x = 0;
+        if(x > GameConstants.GRID_SIZE - 1)
+            x = GameConstants.GRID_SIZE - 1;
+        if(y < 0)
+            y = 0;
+        if(y > GameConstants.GRID_SIZE - 1)
+            y = GameConstants.GRID_SIZE - 1;
+            
+        int[] result = {x,y};
+        return result;
+    }
+    
+    public static void constrainToBoard(GameObject g)
+    {
+        if(g.getPosition().getX() + g.getRadius() > GameConstants.BOARD_WIDTH)
+            g.setPosition(new Vector2D(GameConstants.BOARD_WIDTH - g.getRadius(), g.getPosition().getY()));
+        if(g.getPosition().getY() + g.getRadius() > GameConstants.BOARD_HEIGHT)
+            g.setPosition(new Vector2D(g.getPosition().getX(), GameConstants.BOARD_HEIGHT - g.getRadius()));
+        if(g.getPosition().getX() - g.getRadius() < 0)
+            g.setPosition(new Vector2D(g.getRadius(), g.getPosition().getY()));
+        if(g.getPosition().getY() - g.getRadius() < 0)
+            g.setPosition(new Vector2D(g.getPosition().getX(), g.getRadius()));
     }
 }

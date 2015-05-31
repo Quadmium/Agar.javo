@@ -6,6 +6,7 @@ import java.io.PrintWriter;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.awt.Color;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -26,7 +27,7 @@ public class User
     private OutputHandler outputHandler;
     private volatile int dataIndex;
     private ArrayList<GameObject> userData;
-    private ArrayList<GameObject> worldData = new ArrayList<GameObject>();
+    private HashSet<GameObject> worldData = new HashSet<GameObject>();
     private ArrayList<GameObject> worldRemoved = new ArrayList<GameObject>();
     private ArrayList<GameObject> worldAdded = new ArrayList<GameObject>();
     private ArrayList<GameObject> worldMoved = new ArrayList<GameObject>();
@@ -151,9 +152,10 @@ public class User
                     {
                         splitCharacter();
                     }
-                    else if(message.equals("THROW"))
+                    else if(message.startsWith("THROW"))
                     {
-                        throwMass();
+                        Vector2D target = new Vector2D(Double.parseDouble(message.split(",")[1]), Double.parseDouble(message.split(",")[2]));
+                        throwMass(target);
                     }
                     else if(message.length() > 0)
                     {
@@ -404,7 +406,7 @@ public class User
         }
     }
     
-    private void throwMass()
+    private void throwMass(Vector2D target)
     {
         synchronized(LOCK)
         {
@@ -418,9 +420,9 @@ public class User
                     continue;
                     
                 Vector2D thrownPosition = i==-1 ? position : subObjects.get(i).getPosition();
-                thrownPosition = thrownPosition.plus(velocity.unitVector().scalarMult(radiusA));
+                thrownPosition = thrownPosition.plus(target.minus(thrownPosition).unitVector().scalarMult(radiusA));
                 GameObject thrown = new GameObject("T_" + thrownMassID++, thrownPosition.getX(), thrownPosition.getY(), playerColor, Math.sqrt(GameConstants.THROW_MASS_VOLUME / Math.PI));
-                Vector2D localVelocity = velocity.unitVector().scalarMult(GameConstants.THROW_MASS_SPEED + GameConstants.maximumVelocity(radiusA));
+                Vector2D localVelocity = target.minus(thrownPosition).unitVector().scalarMult(GameConstants.THROW_MASS_SPEED + GameConstants.maximumVelocity(radiusA));
                 thrown.setVelocity(localVelocity);
                 if(i==-1)
                 {
@@ -486,7 +488,7 @@ public class User
         userData.get(dataIndex).setRadius(radius);
     }
 
-    public void setWorld(ArrayList<GameObject> worldData)
+    public void setWorld(HashSet<GameObject> worldData)
     {
         receivedInitialWorldFromServer = true;
         this.worldData = worldData;
