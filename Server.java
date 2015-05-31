@@ -7,6 +7,7 @@ import java.util.Timer;
 import java.util.Arrays;
 import java.util.List;
 import java.awt.Rectangle;
+import javax.swing.JTextArea;
 
 /**
  * Runs a server for the Agar game.
@@ -27,21 +28,25 @@ public class Server
     private ArrayList<ArrayList<HashSet<GameObject>>> grid = new ArrayList<ArrayList<HashSet<GameObject>>>();
     private HashSet<GameObject> movingWorldData = new HashSet<GameObject>();
     private final Object LOCK = new Object();
+    private JTextArea logLabel;
+    private volatile boolean poison = false;
 
     /**
      * Starts world update thread, a client adder thread, and a client remover thread.
      */
-    public Server()
+    public Server(JTextArea logLabel)
     {
+        this.logLabel = logLabel;
+        
         try {
             hostAddress = InetAddress.getLocalHost();
-        } catch (Exception e) {System.out.println(e); return;}
+        } catch (Exception e) {log(e); return;}
 
         try{
             serverSocket = new ServerSocket(PORT, 0, hostAddress);
-        } catch (IOException e) {System.out.println(e); return;}
+        } catch (IOException e) {log(e); return;}
 
-        System.out.println("Server running: " + serverSocket);
+        log("Server running: " + serverSocket);
 
         for(int i=0; i<GameConstants.GRID_SIZE; i++)
             grid.add(new ArrayList<HashSet<GameObject>>());
@@ -52,6 +57,19 @@ public class Server
         (new Thread(new worldUpdateThread())).start();
         (new Thread(new ClientAdderThread())).start();
         (new Thread(new ClientRemoverThread())).start();
+    }
+        
+    private void log(Object text)
+    {
+        logLabel.setText(logLabel.getText() + text.toString() + "\n");
+    }
+    
+    public void close()
+    {
+        poison = true;
+        for(User user : users)
+            user.purge();
+        try{serverSocket.close();}catch(Exception e){}
     }
 
     /*
@@ -66,6 +84,8 @@ public class Server
 
             while(true)
             {
+                if(poison)
+                    return;
                 double deltaTime = (System.nanoTime() - lastUpdate) / 1000000000.0;
                 synchronized(LOCK) {
                     ArrayList<GameObject> removed = new ArrayList<GameObject>();
@@ -266,7 +286,7 @@ public class Server
                 lastUpdate = System.nanoTime();
                 try {
                     Thread.sleep(ROOM_TICK);
-                } catch(InterruptedException e) {System.out.println(e);}
+                } catch(InterruptedException e) {log(e);}
             }
         }
 
@@ -318,13 +338,17 @@ public class Server
         {
             while(true)
             {
-                // Get a client trying to connect
+                if(poison)
+                    return;
+               // Get a client trying to connect
                 try {
                     socket = serverSocket.accept();
                     socket.setTcpNoDelay(true);
                 }
-                catch(IOException e) {System.out.println(e);}
-                System.out.println("Client "+socket+" has connected.");
+                catch(IOException e) {log(e);}
+                if(poison)
+                    return;
+                log("Client "+socket+" has connected.");
                 synchronized(LOCK) {
                     User newUsr = new User(socket, userData, LOCK);
                     users.add(newUsr);
@@ -332,7 +356,7 @@ public class Server
                 }
                 try {
                     Thread.sleep(CLIENTADDER_THROTTLE);
-                } catch(InterruptedException e) {System.out.println(e);}
+                } catch(InterruptedException e) {log(e);}
             }
         }
     }
@@ -346,13 +370,15 @@ public class Server
         {
             while(true)
             {
+                if(poison)
+                    return;
                 synchronized(LOCK) {
                     for(int i = 0; i<users.size(); i++)
                     {
                         // Check connection, remove on dead
                         if(!users.get(i).isConnected())
                         {
-                            System.out.println(users.get(i)+" removed due to lack of connection.");
+                            log(users.get(i)+" removed due to lack of connection.");
                             users.get(i).purge();
                             users.remove(i);
                             userData.remove(i);
@@ -367,7 +393,7 @@ public class Server
                 }
                 try {
                     Thread.sleep(CLIENTADDER_THROTTLE);
-                } catch(InterruptedException e) {System.out.println(e);}
+                } catch(InterruptedException e) {log(e);}
             }
         }
     }

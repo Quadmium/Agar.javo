@@ -1,4 +1,3 @@
-
 import javax.swing.*;
 import java.awt.Component;
 import java.awt.BorderLayout;
@@ -7,39 +6,30 @@ import java.awt.Font;
 import java.awt.Dimension;
 
 /**
- * Shows the server selection screen and transitions to the Agar panel.
- * All visible parts occur inside this JFrame.
+ * Menu to launch instances of the client or the server.
  * 
  * @author Quadmium
  */
 public class MainMenu
 {
-    private JTextField nameField;
-    private DefaultListModel<String> serverList = new DefaultListModel<>();
-    private JPanel selectionPanel;
-    private AgarPanel agar;
     private JFrame frame;
-    private JList centerList;
     
     public static void main(String arg[])
     {
-        if(true)
-            new Server();
-        MainMenu instance = new MainMenu();
         new MainMenu();
     }
     
     /**
-     * Sets up the server selection menu.
+     * Sets up the menu.
      */
     public MainMenu()
     {
         try{UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());}catch(Exception e){}
         frame = new JFrame("Agar.javo");
-        frame.setSize((int)GameConstants.BOARD_WIDTH, (int)GameConstants.BOARD_HEIGHT);
+        frame.setSize(200, 300);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         
-        selectionPanel = new JPanel();
+        JPanel selectionPanel = new JPanel();
         setupComponents(selectionPanel);
         frame.add(selectionPanel);
         frame.setLocationRelativeTo(null);
@@ -49,71 +39,34 @@ public class MainMenu
     
     private void setupComponents(JPanel panel)
     {
-        panel.setLayout(new BorderLayout());
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         
-            JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-                nameField = new JTextField();
-                    nameField.setColumns(15);
-                GhostText nameText = new GhostText(nameField, "Enter a name");
-                topPanel.add(nameField);
-                JButton connectButton = new JButton("Connect");
-                    connectButton.addActionListener((e) -> {
-                        onConnectButton();
-                    });
-                topPanel.add(connectButton);
+        panel.setPreferredSize(new Dimension(200, 300));
+        JButton clientBtn = new JButton("Client");
+            clientBtn.setMaximumSize(new Dimension(200, 70));
+            clientBtn.setPreferredSize(new Dimension(200, 70));
+            clientBtn.setAlignmentX(JComponent.CENTER_ALIGNMENT);
+            clientBtn.setFont(new Font("Arial", Font.PLAIN, 30));
+            clientBtn.addActionListener((e) -> {new ClientMenu();});
+        JButton serverBtn = new JButton("Server");
+            serverBtn.setMaximumSize(new Dimension(200, 70));
+            serverBtn.setPreferredSize(new Dimension(200, 70));
+            serverBtn.setAlignmentX(JComponent.CENTER_ALIGNMENT);
+            serverBtn.setFont(new Font("Arial", Font.PLAIN, 30));
+            serverBtn.addActionListener((e) -> {new ServerMenu();});
+        JLabel labelTop = new JLabel("Agar.javo");
+            labelTop.setAlignmentX(JComponent.CENTER_ALIGNMENT);
+            labelTop.setFont(new Font("Arial", Font.PLAIN, 40));
+        JLabel labelBottom = new JLabel("Created by Quadmium");
+            labelBottom.setAlignmentX(JComponent.CENTER_ALIGNMENT);
+            labelBottom.setFont(new Font("Arial", Font.PLAIN, 15));
             
-        panel.add(topPanel, BorderLayout.NORTH);
-        
-            centerList = new JList<>(serverList);
-                centerList.setFont(new Font("Arial",Font.BOLD,14));
-                
-        panel.add(new JScrollPane(centerList), BorderLayout.CENTER);
-        
-            JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-                JTextField serverIPField = new JTextField();
-                    serverIPField.setColumns(15);
-                GhostText serverIPText = new GhostText(serverIPField, "Enter custom IP");
-                bottomPanel.add(serverIPField);
-                JButton addCustomButton = new JButton("Add");
-                    addCustomButton.addActionListener((e) -> {
-                        String ip = serverIPField.getText();
-                        if(serverList.contains(ip) || ip.equals("Enter custom IP"))
-                            JOptionPane.showMessageDialog(panel, "IP already in list.");
-                        else
-                            serverList.add(serverList.size(), serverIPField.getText());
-                    });
-                bottomPanel.add(addCustomButton);
-            
-        panel.add(bottomPanel, BorderLayout.SOUTH);
-    }
-    
-    /**
-     * When connect is clicked, this void shows a new instance of the AgarPanel class.
-     */
-    private void onConnectButton()
-    {
-        String ip = (String)centerList.getSelectedValue();
-        
-        selectionPanel.setVisible(false);
-        agar = new AgarPanel(ip, nameField.getText().equals("Enter a name") ? "" : nameField.getText(), 
-                                GameConstants.ALLOWED_COLORS[(int)(Math.random()*GameConstants.ALLOWED_COLORS.length)], this);
-        frame.add(agar);
-        frame.getContentPane().setPreferredSize(new Dimension((int)GameConstants.BOARD_WIDTH, (int)GameConstants.BOARD_HEIGHT));
-        frame.pack();
-        frame.setVisible(true);
-        frame.setResizable(true);
-        agar.connect();
-        agar.requestFocus();
-    }
-    
-    /**
-     * Removes the AgarPanel component and shows the original server selection screen.
-     */
-    public void endGame()
-    {
-        frame.remove(agar);
-        selectionPanel.setVisible(true);
-        frame.setSize(500, 500);
-        frame.setResizable(false);
+        panel.add(labelTop);
+        panel.add(Box.createVerticalGlue());
+        panel.add(clientBtn);
+        panel.add(Box.createVerticalGlue());
+        panel.add(serverBtn);
+        panel.add(Box.createVerticalGlue());
+        panel.add(labelBottom);
     }
 }

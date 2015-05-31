@@ -20,6 +20,8 @@ public final class GameConstants
     public static final long EATABLE_DELAY = 2000;
     public static final int GRID_SIZE = BOARD_WIDTH / 10;
     public static final int WORLD_ALLOWANCE = 5;
+    public static final double OUTER_CIRCLE_DARK_FACTOR = 0.8;
+    public static final double OUTER_CIRCLE_RADIUS = 0.4;
     
     public static final Color[] ALLOWED_COLORS = {
             Color.BLUE,

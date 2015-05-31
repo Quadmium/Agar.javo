@@ -60,7 +60,7 @@ public class User
         connected = true;
         this.userData = userData;
         this.LOCK = LOCK;
-        position = new Vector2D(450,450);//Math.random() * GameConstants.BOARD_WIDTH, Math.random() * GameConstants.BOARD_HEIGHT);
+        position = new Vector2D(Math.random() * GameConstants.BOARD_WIDTH, Math.random() * GameConstants.BOARD_HEIGHT);
         userData.add(new GameObject(name, position.getX(), position.getY(), playerColor, radius));
         dataIndex = userData.size() - 1;
         inputHandler = new InputHandler();
@@ -100,8 +100,6 @@ public class User
                 System.out.println("Could not get stream from "+toString());
                 return;
             }
-            // Announce
-            System.out.println(socket+" has connected input.");
             // Enter process loop
             while(true)
             {
@@ -110,6 +108,11 @@ public class User
                 try
                 {
                     String message = in.readLine();
+                    if(message == null)
+                    {
+                        purge();
+                        return;
+                    }
                     lastMessage = System.nanoTime();
                     if(message.startsWith("NAME "))
                     {
@@ -124,7 +127,7 @@ public class User
                             userData.get(dataIndex).setName(name);
                             if(name.equals("Cheater"))
                             {
-                                radius += 10;
+                                radius = 10;
                                 userData.get(dataIndex).setRadius(radius);
                             }
                         }
@@ -185,8 +188,6 @@ public class User
                 System.out.println("Could not get stream from "+toString());
                 return;
             }
-            // Announce
-            System.out.println(socket+" has connected input.");
             // Enter process loop
             while(true)
             {
@@ -216,7 +217,7 @@ public class User
                 }
                 catch(Exception e)
                 {
-                    System.out.println(e);
+                    //System.out.println(e);
                 }
             }
         }

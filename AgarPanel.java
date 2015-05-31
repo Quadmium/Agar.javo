@@ -23,7 +23,7 @@ import java.awt.AlphaComposite;
  * Hosts the client code for the Agar game. The client is responsible for displaying the game as
  * specified by the server and sending the mouse coordinates.
  * 
- * @see MainMenu
+ * @see ClientMenu
  * 
  * @author Quadmium
  */
@@ -37,7 +37,7 @@ public class AgarPanel extends JPanel implements KeyListener
     private Color playerColor;
     private volatile double radius;
     private volatile Vector2D position;
-    private MainMenu parent;
+    private ClientMenu parent;
     private volatile Socket socket;
     private ArrayList<GameObject> userData = new ArrayList<GameObject>();
     private ArrayList<GameObject> lastUserData = new ArrayList<GameObject>();
@@ -71,7 +71,7 @@ public class AgarPanel extends JPanel implements KeyListener
      * @param playerColor the player's requested color
      * @param parent the parent MainMenu
      */
-    public AgarPanel(String ip, String name, Color playerColor, MainMenu parent)
+    public AgarPanel(String ip, String name, Color playerColor, ClientMenu parent)
     {
         super();
         setDoubleBuffered(true);
@@ -82,6 +82,12 @@ public class AgarPanel extends JPanel implements KeyListener
         addKeyListener(this);
         setFocusable(true);
         requestFocusInWindow();
+    }
+    
+    public void close()
+    {
+        try{socket.close();}catch(Exception e){}
+        poison = true;
     }
 
     /**
@@ -195,10 +201,19 @@ public class AgarPanel extends JPanel implements KeyListener
                         Vector2D shiftedPosition = new Vector2D(estimatedPosition_unshifted.getX() - (estimatedPlayerPosition_unshifted.getX() - boundRadius), 
                                 estimatedPosition_unshifted.getY() - (estimatedPlayerPosition_unshifted.getY() - boundRadius));
 
-                        g.setColor(obj.getColor());
+                        g.setColor(new Color((int)(obj.getColor().getRed() * GameConstants.OUTER_CIRCLE_DARK_FACTOR),
+                                             (int)(obj.getColor().getGreen() * GameConstants.OUTER_CIRCLE_DARK_FACTOR),
+                                             (int)(obj.getColor().getBlue() * GameConstants.OUTER_CIRCLE_DARK_FACTOR)));
                         int x = (int)((shiftedPosition.getX() - obj.getRadius()) * scale);
                         int y = (int)((shiftedPosition.getY() - obj.getRadius()) * scale);
-                        g.fillArc(offsetX + x, offsetY + y, (int)(obj.getRadius() * 2 * scale), (int)(obj.getRadius() * 2 * scale), 0, 360);
+                        int outerRad = (int)(GameConstants.OUTER_CIRCLE_RADIUS * scale);
+                        g.fillArc(offsetX + x - outerRad, 
+                                  offsetY + y - outerRad,
+                                  (int)(obj.getRadius() * 2 * scale) + outerRad * 2, 
+                                  (int)(obj.getRadius() * 2 * scale) + outerRad * 2, 0, 360);
+                        g.setColor(obj.getColor());
+                        g.fillArc(offsetX + x, offsetY + y, (int)(obj.getRadius() * 2 * scale),
+                                  (int)(obj.getRadius() * 2 * scale), 0, 360);
 
                         f = new Font("Arial",Font.BOLD,12);
                         g.setFont(f);
@@ -621,6 +636,7 @@ public class AgarPanel extends JPanel implements KeyListener
                 if(lag > TIMEOUT)
                 {
                     poison = true;
+                    try{socket.close();}catch(Exception e){}
                     parent.endGame();
                     return;
                 }
