@@ -519,7 +519,6 @@ public class AgarPanel extends JPanel implements KeyListener
 
                             if(Math.abs(worldData.size() - serverWorldDataSize) > GameConstants.WORLD_ALLOWANCE)
                             {
-                                System.out.println("brok");
                                 receivedWorld = false;
                             }
                             AgarPanel.this.radius = userData.get(dataIndex).getRadius();
