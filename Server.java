@@ -5,6 +5,8 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Timer;
 import java.util.Arrays;
+import java.util.List;
+import java.awt.Rectangle;
 
 /**
  * Runs a server for the Agar game.
@@ -69,10 +71,10 @@ public class Server
                     ArrayList<GameObject> removed = new ArrayList<GameObject>();
                     ArrayList<GameObject> added = new ArrayList<GameObject>();
                     ArrayList<GameObject> moved = new ArrayList<GameObject>();
-                    
+
                     for(GameObject food : populateFood())
                         added.add(food);
-                    
+
                     for(User u : users)
                     {
                         for(GameObject g : u.getWorldAdditions())
@@ -83,7 +85,7 @@ public class Server
                                 movingWorldData.add(g);
                         }
                     }
-                    
+
                     for(Iterator<GameObject> i = movingWorldData.iterator(); i.hasNext();)
                     {
                         GameObject g = i.next();
@@ -92,7 +94,7 @@ public class Server
                             i.remove();
                             continue;
                         }
-                    
+
                         int[] bucket = GameConstants.gridBucket(g.getPosition());
                         Vector2D deltaP = g.getVelocity().scalarMult(deltaTime);
                         g.setPosition(g.getPosition().plus(deltaP));
@@ -101,19 +103,19 @@ public class Server
                         moved.add(g);
                         updateBucket(g, bucket);
                     }
-                    
+
                     for(GameObject u : userData)
                     {
                         for(int i=-1; i<u.getSubObjectsSize(); i++)
                         {
                             if(i < 0 && u.getSubObjectsSize() > 0)
                                 continue;
-                                
+
                             GameObject player = i==-1 ? u : u.getSubObject(i);
-                            
+
                             int[] topLeftBucket = GameConstants.gridBucket(player.getPosition().plus(new Vector2D(-player.getRadius(), -player.getRadius())));
                             int[] bottomRightBucket = GameConstants.gridBucket(player.getPosition().plus(new Vector2D(player.getRadius(), player.getRadius())));
-                            
+
                             for(int j=topLeftBucket[0]; j <= bottomRightBucket[0]; j++)
                             {
                                 for(int k=topLeftBucket[1]; k <= bottomRightBucket[1]; k++)
@@ -121,7 +123,7 @@ public class Server
                                     for(Iterator<GameObject> iter = grid.get(j).get(k).iterator(); iter.hasNext();)
                                     {
                                         GameObject food = iter.next();
-                                        
+
                                         if(GameConstants.distance(player.getPosition(), food.getPosition()) < player.getRadius())
                                         {
                                             double volume = 0;
@@ -133,7 +135,7 @@ public class Server
                                                     continue;
                                                 volume += GameConstants.THROW_MASS_VOLUME;
                                             }
-                                                
+
                                             player.setRadius(Math.sqrt((Math.PI * player.getRadius() * player.getRadius() + volume) / Math.PI));
                                             removed.add(food);
                                             worldData.remove(food);
@@ -144,95 +146,110 @@ public class Server
                             }
                         }
                     }
-                    
+
+                    Quadtree quad = new Quadtree(0, new Rectangle(0,0,GameConstants.BOARD_WIDTH,GameConstants.BOARD_HEIGHT));
+
                     for(GameObject u : userData)
-                    {
-                        for(GameObject enemy : userData)
-                        {
-                            if(u == enemy)
-                                continue;
-                                
-                            if(u.getSubObjectsSize() == 0 && enemy.getSubObjectsSize() == 0 &&
-                               u.getRadius() > enemy.getRadius() * GameConstants.EAT_RATIO && GameConstants.distance(u.getPosition(), enemy.getPosition()) < u.getRadius())
-                            {
-                                u.setRadius(Math.sqrt((Math.PI * u.getRadius() * u.getRadius() + Math.PI * enemy.getRadius() * enemy.getRadius()) / Math.PI));
-                                enemy.setRadius(0);
-                            }
-                            else if(u.getSubObjectsSize() == 0)
-                            {
-                                for(int i=0; i<enemy.getSubObjectsSize(); i++)
-                                {
-                                    if(u.getRadius() > enemy.getSubObject(i).getRadius() * GameConstants.EAT_RATIO && GameConstants.distance(u.getPosition(), enemy.getSubObject(i).getPosition()) < u.getRadius())
-                                    {
-                                        u.setRadius(Math.sqrt((Math.PI * u.getRadius() * u.getRadius() + Math.PI * enemy.getSubObject(i).getRadius() * enemy.getSubObject(i).getRadius()) / Math.PI));
-                                        enemy.removeSubObject(i);
-                                        if(enemy.getSubObjectsSize() == 0)
-                                            enemy.setRadius(0);
-                                   }
-                                }
-                            }
-                            else if(enemy.getSubObjectsSize() == 0)
-                            {
-                                for(int i=0; i<u.getSubObjectsSize(); i++)
-                                {
-                                    if(u.getSubObject(i).getRadius() > enemy.getRadius() * GameConstants.EAT_RATIO && GameConstants.distance(u.getSubObject(i).getPosition(), enemy.getPosition()) < u.getSubObject(i).getRadius())
-                                    {
-                                        u.getSubObject(i).setRadius(Math.sqrt((Math.PI * u.getSubObject(i).getRadius() * u.getSubObject(i).getRadius() + Math.PI * enemy.getRadius() * enemy.getRadius()) / Math.PI));
-                                        enemy.setRadius(0);
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                for(int i=0; i<u.getSubObjectsSize(); i++)
-                                {
-                                    for(int j=0; j<enemy.getSubObjectsSize(); j++)
-                                    {
-                                        if(u.getSubObject(i).getRadius() > enemy.getSubObject(j).getRadius() * GameConstants.EAT_RATIO && GameConstants.distance(u.getSubObject(i).getPosition(), enemy.getSubObject(j).getPosition()) < u.getSubObject(i).getRadius())
-                                        {
-                                            u.getSubObject(i).setRadius(Math.sqrt((Math.PI * u.getSubObject(i).getRadius() * u.getSubObject(i).getRadius() + Math.PI * enemy.getSubObject(j).getRadius() * enemy.getSubObject(j).getRadius()) / Math.PI));
-                                            enemy.removeSubObject(j);
-                                            if(enemy.getSubObjectsSize() == 0)
-                                                enemy.setRadius(0);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    
-                    for(GameObject u : userData)
-                    {
-                        if(u.canMerge())
-                        {
+                        if(u.getSubObjectsSize() == 0)
+                            quad.insert(u);
+                        else
                             for(int i=0; i<u.getSubObjectsSize(); i++)
-                            {
-                                for(int j=i+1; j<u.getSubObjectsSize(); j++)
+                                quad.insert(u.getSubObject(i));
+
+                    List<GameObject> returnObjects = new ArrayList<GameObject>();
+                    ArrayList<ArrayList<GameObject>> foundPairs = new ArrayList<ArrayList<GameObject>>();
+                    for (GameObject u : userData)
+                    {
+                        for(int i=-1; i<u.getSubObjectsSize(); i++)
+                        {
+                            if(i < 0 && u.getSubObjectsSize() > 0)
+                                continue;
+
+                            GameObject player = i==-1 ? u : u.getSubObject(i);
+
+                            returnObjects.clear();
+                            quad.retrieve(returnObjects, player);
+
+                            for (int x = 0; x < returnObjects.size(); x++) {
+                                GameObject enemy = returnObjects.get(x);
+                                
+                                if(player == enemy)
+                                    continue;
+                                    
+                                GameObject bigger = player.getRadius() > enemy.getRadius() ? player : enemy;
+                                GameObject smaller = bigger == player ? enemy : player;
+                                
+                                boolean alreadyCollided = false;
+                                for(ArrayList<GameObject> pair : foundPairs)
+                                    if(pair.get(0) == bigger && pair.get(1) == smaller)
+                                        alreadyCollided = true;
+                                if(alreadyCollided)
+                                    continue;
+                                else
                                 {
-                                    if(GameConstants.distance(u.getSubObject(i).getPosition(), u.getSubObject(j).getPosition()) - 0.00001 <=
-                                    (u.getSubObject(i).getRadius() > u.getSubObject(j).getRadius() ? u.getSubObject(i).getRadius() : u.getSubObject(j).getRadius()))
+                                    ArrayList<GameObject> pair = new ArrayList<GameObject>();
+                                    pair.add(bigger);
+                                    pair.add(smaller);
+                                    foundPairs.add(pair);
+                                }
+                                
+                                if(bigger.getParent() != null && bigger.getParent() == smaller.getParent())
+                                {
+                                    //Collision between subobjects
+                                    if(GameConstants.distance(bigger.getPosition(), smaller.getPosition()) > bigger.getRadius())
+                                        continue;
+                                    
+                                    GameObject parent = player.getParent();
+                                    
+                                    if(parent.canMerge())
                                     {
-                                        if(u.getSubObjectsSize() > 2)
+                                        if(parent.getSubObjectsSize() > 2)
                                         {
-                                            int biggerIndex = u.getSubObject(i).getRadius() > u.getSubObject(j).getRadius() ? i : j;
-                                            int smallerIndex = biggerIndex == i ? j : i;
-                                            u.getSubObject(biggerIndex).setRadius(Math.sqrt((Math.PI * Math.pow(u.getSubObject(biggerIndex).getRadius(),2) + Math.PI * Math.pow(u.getSubObject(smallerIndex).getRadius(),2)) / Math.PI));
-                                            u.removeSubObject(smallerIndex);
+                                            bigger.setRadius(Math.sqrt((Math.PI * Math.pow(bigger.getRadius(),2) + Math.PI * Math.pow(smaller.getRadius(),2)) / Math.PI));
+                                            parent.removeSubObject(smaller);
                                         }
                                         else
                                         {
-                                            u.setRadius(Math.sqrt((Math.PI * u.getSubObject(i).getRadius() * u.getSubObject(i).getRadius() + Math.PI * u.getSubObject(j).getRadius() * u.getSubObject(j).getRadius()) / Math.PI));
-                                            Vector2D biggerRadiusPosition = u.getSubObject(i).getRadius() > u.getSubObject(j).getRadius() ? u.getSubObject(i).getPosition() : u.getSubObject(j).getPosition();
-                                            u.setX(biggerRadiusPosition.getX());
-                                            u.setY(biggerRadiusPosition.getY());
-                                            u.clearSubObjects();
+                                            parent.setRadius(Math.sqrt((Math.PI * Math.pow(bigger.getRadius(),2) + Math.PI * Math.pow(smaller.getRadius(),2)) / Math.PI));
+                                            parent.setPosition(bigger.getPosition());
+                                            parent.clearSubObjects();
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    //Collision between bigger and smaller
+                                    if(!GameConstants.canEat(bigger, smaller))
+                                        continue;
+                                        
+                                    if(smaller.getParent() == null)
+                                    {
+                                        //Smaller has no parent
+
+                                        bigger.setRadius(Math.sqrt((Math.PI * Math.pow(bigger.getRadius(),2) + 
+                                                    Math.PI * Math.pow(smaller.getRadius(),2)) / Math.PI));
+                                        smaller.setRadius(0);
+                                    }
+                                    else
+                                    {
+                                        //Smaller is a subObject
+
+                                        bigger.setRadius(Math.sqrt((Math.PI * Math.pow(bigger.getRadius(),2) + 
+                                                    Math.PI * Math.pow(smaller.getRadius(),2)) / Math.PI));
+                                        GameObject smallerParent = smaller.getParent();
+                                        smallerParent.removeSubObject(smaller);
+                                        if(smallerParent.getSubObjectsSize() == 1)
+                                        {
+                                            smallerParent.setRadius(smallerParent.getSubObject(0).getRadius());
+                                            smallerParent.setPosition(smallerParent.getSubObject(0).getPosition());
+                                            smallerParent.clearSubObjects();
                                         }
                                     }
                                 }
                             }
                         }
                     }
-                    
+
                     for(User u : users)
                     {
                         for(GameObject g : removed)
@@ -241,7 +258,7 @@ public class Server
                             u.addToWorldAdded(g);
                         for(GameObject g : moved)
                             u.addToWorldMoved(g);
-                            
+
                         u.move(deltaTime);
                         u.setWorld(worldData);
                     }
@@ -252,7 +269,7 @@ public class Server
                 } catch(InterruptedException e) {System.out.println(e);}
             }
         }
-        
+
         private ArrayList<GameObject> populateFood()
         {
             synchronized(LOCK) {
@@ -260,37 +277,37 @@ public class Server
                 while(worldData.size() < GameConstants.FOOD_GOAL)
                 {
                     GameObject food = new GameObject("F", Math.random() * GameConstants.BOARD_WIDTH,
-                        Math.random() * GameConstants.BOARD_HEIGHT,
-                        GameConstants.ALLOWED_COLORS[(int)(Math.random() * GameConstants.ALLOWED_COLORS.length)],
-                        GameConstants.FOOD_RADIUS);
+                            Math.random() * GameConstants.BOARD_HEIGHT,
+                            GameConstants.ALLOWED_COLORS[(int)(Math.random() * GameConstants.ALLOWED_COLORS.length)],
+                            GameConstants.FOOD_RADIUS);
                     addToWorldData(food);
                     added.add(food);
                 }
                 return added;
             }
         }
-        
+
         private void addToWorldData(GameObject g)
         {
             worldData.add(g);
             int[] bucket = GameConstants.gridBucket(g.getPosition());
             grid.get(bucket[0]).get(bucket[1]).add(g);
         }
-        
+
         private void removeFromWorldData(GameObject g)
         {
             worldData.remove(g);
             int[] bucket = GameConstants.gridBucket(g.getPosition());
             grid.get(bucket[0]).get(bucket[1]).remove(g);
         }
-        
+
         private void updateBucket(GameObject g, int[] bucket)
         {
             int[] realBucket = GameConstants.gridBucket(g.getPosition());
             grid.get(bucket[0]).get(bucket[1]).remove(g);
             grid.get(realBucket[0]).get(realBucket[1]).add(g);
         }
-   }
+    }
 
     /**
      * Adds clients to the world with a new User object. Waits for new clients to connect.

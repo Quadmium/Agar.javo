@@ -166,4 +166,10 @@ public final class GameConstants
         if(g.getPosition().getY() - g.getRadius() < 0)
             g.setPosition(new Vector2D(g.getPosition().getX(), g.getRadius()));
     }
+    
+    public static boolean canEat(GameObject a, GameObject b)
+    {
+        return a.getRadius() > b.getRadius() * EAT_RATIO && 
+               distance(a.getPosition(), b.getPosition()) < a.getRadius();
+    }
 }

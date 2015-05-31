@@ -1,0 +1,20 @@
+#BlueJ class context
+comment0.params=pLevel\ pBounds
+comment0.target=Quadtree(int,\ java.awt.Rectangle)
+comment0.text=\r\n\ Constructor\r\n
+comment1.params=
+comment1.target=void\ clear()
+comment1.text=\r\n\ Clears\ the\ quadtree\r\n
+comment2.params=
+comment2.target=void\ split()
+comment2.text=\r\n\ Splits\ the\ node\ into\ 4\ subnodes\r\n
+comment3.params=pRect
+comment3.target=int\ getIndex(GameObject)
+comment3.text=\r\n\ Determine\ which\ node\ the\ object\ belongs\ to.\ -1\ means\r\n\ object\ cannot\ completely\ fit\ within\ a\ child\ node\ and\ is\ part\r\n\ of\ the\ parent\ node\r\n
+comment4.params=pRect
+comment4.target=void\ insert(GameObject)
+comment4.text=\r\n\ Insert\ the\ object\ into\ the\ quadtree.\ If\ the\ node\r\n\ exceeds\ the\ capacity,\ it\ will\ split\ and\ add\ all\r\n\ objects\ to\ their\ corresponding\ nodes.\r\n
+comment5.params=returnObjects\ pRect
+comment5.target=java.util.List\ retrieve(java.util.List,\ GameObject)
+comment5.text=\r\n\ Return\ all\ objects\ that\ could\ collide\ with\ the\ given\ object\r\n
+numComments=6

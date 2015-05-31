@@ -371,6 +371,8 @@ public class User
                 subObjects.add(new GameObject(name, position.getX() + dx, position.getY() + dy, playerColor, radius / Math.sqrt(2)));
                 subObjects.add(new GameObject(name, position.getX() - dx, position.getY() - dy, playerColor, radius / Math.sqrt(2)));
                 subObjects.get(0).setVelocity(velocity.unitVector().scalarMult(GameConstants.SPLIT_VELOCITY_BOOST * subObjects.get(0).getRadius()));
+                subObjects.get(0).setParent(userData.get(dataIndex));
+                subObjects.get(1).setParent(userData.get(dataIndex));
                 syncSubObjects();
                 mergeTimerID++;
                 userData.get(dataIndex).setMerge(false);
@@ -392,6 +394,7 @@ public class User
                     /*dx *= 1.2;
                     dy *= 1.2;*/
                     GameObject objSplit = new GameObject(obj.getName(), obj.getPosition().getX() - dx, obj.getPosition().getY() - dy, obj.getColor(), obj.getRadius() / Math.sqrt(2));
+                    objSplit.setParent(userData.get(dataIndex));
                     obj.setX(obj.getPosition().getX() + dx);
                     obj.setY(obj.getPosition().getY() + dy);
                     obj.setRadius(obj.getRadius() / Math.sqrt(2));
@@ -456,10 +459,15 @@ public class User
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
-                synchronized(LOCK)
-                {
-                    if(mergeTimerID == ID)
-                        userData.get(dataIndex).setMerge(true);
+                try {
+                    synchronized(LOCK)
+                    {
+                        if(mergeTimerID == ID && userData.get(dataIndex).getName().equals(name))
+                            userData.get(dataIndex).setMerge(true);
+                    }
+                }
+                catch(Exception e) {
+                    //User kicked out before timer went off
                 }
             }
         }, GameConstants.MERGE_DELAY);

@@ -12,6 +12,7 @@ public class GameObject
     private Color playerColor;
     private ArrayList<GameObject> subObjects = new ArrayList<GameObject>();
     private boolean merge = true, eatable = true;
+    private GameObject parent;
     
     public GameObject(String name, double x, double y, Color playerColor, double radius)
     {
@@ -28,6 +29,16 @@ public class GameObject
                playerColor == g.getColor() &&
                x == g.getX() && y == g.getY() &&
                name.equals(g.getName());
+    }
+    
+    public GameObject getParent()
+    {
+        return parent;
+    }
+    
+    public void setParent(GameObject parent)
+    {
+        this.parent = parent;
     }
     
     public boolean eatable()
@@ -70,6 +81,11 @@ public class GameObject
         subObjects.remove(index);
     }
     
+    public void removeSubObject(GameObject obj)
+    {
+        subObjects.remove(obj);
+    }
+    
     public void clearSubObjects()
     {
         subObjects.clear();
@@ -89,7 +105,7 @@ public class GameObject
     {
         for(int i=0; i<subObjects.size(); i++)
         {
-            if(subObjects.get(i).equalsData(obj))
+            if(subObjects.get(i) == obj)
                 return i;
         }
         
