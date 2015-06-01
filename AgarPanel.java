@@ -154,6 +154,14 @@ public class AgarPanel extends JPanel implements KeyListener
                     foodFrame -= FOOD_ROTATE_PERIOD;
 
                 double foodAngle = 2 * Math.PI * foodFrame / FOOD_ROTATE_PERIOD;
+                double a1 = Math.cos(foodAngle), a2 = Math.cos(foodAngle + Math.PI / 2),
+                       a3 = Math.cos(foodAngle + Math.PI), a4 = Math.cos(foodAngle + 3 * Math.PI / 2),
+                       a5 = Math.sin(foodAngle), a6 = Math.sin(foodAngle + Math.PI / 2),
+                       a7 = Math.sin(foodAngle + Math.PI), a8 = Math.sin(foodAngle + 3 * Math.PI / 2);
+                double b1 = GameConstants.FOOD_RADIUS * scale * a1, b2 = GameConstants.FOOD_RADIUS * scale * a2,
+                       b3 = GameConstants.FOOD_RADIUS * scale * a3, b4 = GameConstants.FOOD_RADIUS * scale * a4,
+                       b5 = GameConstants.FOOD_RADIUS * scale * a5, b6 = GameConstants.FOOD_RADIUS * scale * a6,
+                       b7 = GameConstants.FOOD_RADIUS * scale * a7, b8 = GameConstants.FOOD_RADIUS * scale * a8;
                 for(GameObject obj : worldData)
                 {
                     if(!GameConstants.insideBoundRadius(position, boundRadius, obj))
@@ -171,12 +179,22 @@ public class AgarPanel extends JPanel implements KeyListener
                     int x = (int)((shiftedPosition.getX() - obj.getRadius()) * scale);
                     int y = (int)((shiftedPosition.getY() - obj.getRadius()) * scale);
 
-                    double r = obj.getRadius() * scale;
                     Polygon food = new Polygon();
-                    food.addPoint(offsetX + (int)(x + r * Math.cos(foodAngle)), offsetY + (int)(y + r * Math.sin(foodAngle)));
-                    food.addPoint(offsetX + (int)(x + r * Math.cos(foodAngle + Math.PI / 2)), offsetY + (int)(y + r * Math.sin(foodAngle + Math.PI / 2)));
-                    food.addPoint(offsetX + (int)(x + r * Math.cos(foodAngle + Math.PI)), offsetY + (int)(y + r * Math.sin(foodAngle + Math.PI)));
-                    food.addPoint(offsetX + (int)(x + r * Math.cos(foodAngle + 3 * Math.PI / 2)), offsetY + (int)(y + r * Math.sin(foodAngle + 3 * Math.PI / 2)));
+                    if(obj.getRadius() == GameConstants.FOOD_RADIUS)
+                    {
+                        food.addPoint(offsetX + (int)(x + b1), offsetY + (int)(y + b5));
+                        food.addPoint(offsetX + (int)(x + b2), offsetY + (int)(y + b6));
+                        food.addPoint(offsetX + (int)(x + b3), offsetY + (int)(y + b7));
+                        food.addPoint(offsetX + (int)(x + b4), offsetY + (int)(y + b8));
+                    }
+                    else
+                    {
+                        double r = obj.getRadius() * scale;
+                        food.addPoint(offsetX + (int)(x + r * a1), offsetY + (int)(y + r * a5));
+                        food.addPoint(offsetX + (int)(x + r * a2), offsetY + (int)(y + r * a6));
+                        food.addPoint(offsetX + (int)(x + r * a3), offsetY + (int)(y + r * a7));
+                        food.addPoint(offsetX + (int)(x + r * a4), offsetY + (int)(y + r * a8));
+                    }
                     g.fillPolygon(food);
                 }
                 foodFrame += deltaTime;
