@@ -17,7 +17,7 @@ public final class GameConstants
     public static final double THROW_MASS_VOLUME = 8;
     public static final double THROW_MASS_SPEED = 20;
     public static final double THROW_MASS_DECELERATION = 20;
-    public static final long EATABLE_DELAY = 2000;
+    public static final long EATABLE_DELAY = 1000;
     public static final int GRID_SIZE = BOARD_WIDTH / 10;
     public static final int WORLD_ALLOWANCE = 5;
     public static final double OUTER_CIRCLE_DARK_FACTOR = 0.8;

@@ -33,6 +33,7 @@ public class User
     private ArrayList<GameObject> worldMoved = new ArrayList<GameObject>();
     private ArrayList<GameObject> subObjects = new ArrayList<GameObject>();
     private ArrayList<GameObject> worldAdditions = new ArrayList<GameObject>();
+    private ArrayList<ArrayList<GameObject>> worldRemovedHistory = new ArrayList<ArrayList<GameObject>>();
     private volatile String name = "";
     private volatile boolean receivedNameRequest = false;
     private volatile boolean receivedColorRequest = false;
@@ -529,6 +530,13 @@ public class User
         StringBuilder result = new StringBuilder("" + dataIndex + ",");
         synchronized(LOCK)
         {
+            ArrayList<GameObject> clone = new ArrayList<GameObject>();
+            for(GameObject g : worldRemoved)
+                clone.add(g);
+            worldRemovedHistory.add(clone);
+            if(worldRemovedHistory.size() > 4)
+                worldRemovedHistory.remove(0);
+            
             boolean changed = false;
             for(GameObject userObj : userData)
             {
@@ -554,12 +562,13 @@ public class User
             result.append("&");
 
             changed = false;
-            for(GameObject worldObj : worldRemoved)
-            {
-                changed = true;
-                result.append(worldObj.getName() + "|" + worldObj.getX() + "|" + worldObj.getY() + "|" 
-                    + GameConstants.colorToString(worldObj.getColor()) + "|" + worldObj.getRadius() + ",");
-            }
+            for(ArrayList<GameObject> removedList : worldRemovedHistory)
+                for(GameObject worldObj : removedList)
+                {
+                    changed = true;
+                    result.append(worldObj.getName() + "|" + worldObj.getX() + "|" + worldObj.getY() + "|" 
+                        + GameConstants.colorToString(worldObj.getColor()) + "|" + worldObj.getRadius() + ",");
+                }
             if(changed)
                 result.deleteCharAt(result.length()-1);
             result.append("&");

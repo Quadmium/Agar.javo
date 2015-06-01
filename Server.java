@@ -155,10 +155,11 @@ public class Server
                                                     continue;
                                                 volume += GameConstants.THROW_MASS_VOLUME;
                                             }
-
+                                            
                                             player.setRadius(Math.sqrt((Math.PI * player.getRadius() * player.getRadius() + volume) / Math.PI));
                                             removed.add(food);
                                             worldData.remove(food);
+                                            movingWorldData.remove(food);
                                             iter.remove();
                                         }
                                     }
@@ -269,7 +270,7 @@ public class Server
                             }
                         }
                     }
-
+                    
                     for(User u : users)
                     {
                         for(GameObject g : removed)
