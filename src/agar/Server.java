@@ -25,6 +25,7 @@ public class Server
     private ArrayList<User> users = new ArrayList<User>();
     private ArrayList<GameObject> userData = new ArrayList<GameObject>();
     private HashSet<GameObject> worldData = new HashSet<GameObject>();
+    private ArrayList<String> chatData = new ArrayList<String>();
     private ArrayList<ArrayList<HashSet<GameObject>>> grid = new ArrayList<ArrayList<HashSet<GameObject>>>();
     private HashSet<GameObject> movingWorldData = new HashSet<GameObject>();
     private final Object LOCK = new Object();
@@ -351,7 +352,7 @@ public class Server
                     return;
                 log("Client "+socket+" has connected.");
                 synchronized(LOCK) {
-                    User newUsr = new User(socket, userData, LOCK);
+                    User newUsr = new User(socket, userData, chatData, LOCK);
                     users.add(newUsr);
                     newUsr.setWorld(worldData);
                 }

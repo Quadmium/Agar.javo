@@ -43,6 +43,7 @@ public class AgarPanel extends JPanel implements KeyListener
     private ArrayList<GameObject> lastUserData = new ArrayList<GameObject>();
     private ArrayList<GameObject> worldData = new ArrayList<GameObject>();
     private HashMap<String, GameObject> lastThrownData = new HashMap<String, GameObject>();
+    private ArrayList<String> chatData = new ArrayList<String>();
     private final Object LOCK = new Object();
     private volatile int dataIndex = -1;
     private volatile PrintWriter out;
@@ -63,6 +64,10 @@ public class AgarPanel extends JPanel implements KeyListener
 
     private volatile boolean poison = false;
     private static final int TIMEOUT = 2;
+    
+    private volatile boolean sendMsg = false;
+    private volatile boolean typing = false;
+    private volatile String inProgressChat;
 
     /**
      * Setup a new game panel.
@@ -122,6 +127,7 @@ public class AgarPanel extends JPanel implements KeyListener
             synchronized(LOCK)
             {
                 double deltaTime = (System.nanoTime() - lastFrameRendered) / 1000000000.0;
+                lastFrameRendered = System.nanoTime();
                 double boundRadius = GameConstants.getBoundRadius(radius);
                 int offsetX = 0;
                 int offsetY = 0;
@@ -302,12 +308,35 @@ public class AgarPanel extends JPanel implements KeyListener
                 f = new Font("Arial",Font.BOLD,12);
                 g.setFont(f);
                 FontMetrics fm = g.getFontMetrics();
-                s = "FPS: " + (int)(1/((System.nanoTime() - lastFrameRendered) / 1000000000.0))
+                s = "FPS: " + (int)(1/deltaTime)
                 + " (" + (int)position.getX() + "," + (int)position.getY() + ")";
                 g.drawString(s, offsetX + square - fm.stringWidth(s) - 10, 
                     offsetY + square - g.getFontMetrics().getHeight());
+                
+                if(typing)
+                {
+                    f = new Font("Arial",Font.BOLD,(int)(0.04 * square));
+                    g.setFont(f);
+                    Color chatColor = new Color(Color.lightGray.getRed(), Color.lightGray.getGreen(), Color.lightGray.getBlue(), 200);
+                    
+                    g.setColor(chatColor);
+                    g.fillRect(offsetX, d.height - (int)(0.05 * square), (int)(0.5 * square), (int)(0.05 * square));
+                    g.setColor(Color.BLACK);
+                    g.drawString(inProgressChat, offsetX + (int)(0.01 * square), d.height - (int)(0.01 * square));
+                    
+                    int chatOffset = (int)(0.1 * square);
+                    int maxChat = 5;
+                    for(int i=chatData.size() - 1; i >= (chatData.size() >= maxChat ? chatData.size() - maxChat : 0); i--)
+                    {
+                        g.setColor(Color.BLACK);
+                        g.drawString(chatData.get(i), offsetX + (int)(0.01 * square), d.height - chatOffset);
+                        chatOffset += (int)(0.05 * square);
+                    }
+                    
+                    f = new Font("Arial",Font.BOLD,12);
+                    g.setFont(f);
+                }
             }
-            lastFrameRendered = System.nanoTime();
         }
     }
 
@@ -471,6 +500,13 @@ public class AgarPanel extends JPanel implements KeyListener
                         }
                         receivedWorld = true;
                     }
+                    else if(message.startsWith("CHAT "))
+                    {
+                        synchronized(LOCK)
+                        {
+                            chatData.add(message.substring(5));
+                        }
+                    }
                     else if(receivedWorld)
                     {
                         String[] messageContents = message.split("&", -1);
@@ -594,6 +630,12 @@ public class AgarPanel extends JPanel implements KeyListener
                     {
                         out.println("WORLD");
                     }
+                    else if(sendMsg)
+                    {
+                        out.println("CHAT " + inProgressChat);
+                        inProgressChat = "";
+                        sendMsg = false;
+                    }
                     else if(dataIndex != -1 && userData.size() > 0)
                     {
                         //Still send input if only updating world
@@ -668,9 +710,49 @@ public class AgarPanel extends JPanel implements KeyListener
     {
     }
 
+    public boolean isPrintableChar( char c ) {
+        Character.UnicodeBlock block = Character.UnicodeBlock.of( c );
+        return (!Character.isISOControl(c)) &&
+                c != KeyEvent.CHAR_UNDEFINED &&
+                block != null &&
+                block != Character.UnicodeBlock.SPECIALS;
+    }
+    
     @Override
     public void keyPressed(KeyEvent e) 
     {
+        if(typing)
+        {
+            if(e.getKeyCode() == KeyEvent.VK_ESCAPE)
+            {
+                inProgressChat = "";
+                typing = false;
+            }
+            else if(e.getKeyCode() == KeyEvent.VK_ENTER)
+            {
+                sendMsg = true;
+                //typing = false;
+            }
+            else if(e.getKeyCode() == KeyEvent.VK_BACK_SPACE)
+            {
+                if(inProgressChat.length() > 0)
+                    inProgressChat = inProgressChat.substring(0, inProgressChat.length() - 1);
+            }
+            else
+            {
+                if(isPrintableChar(e.getKeyChar()))
+                    inProgressChat = inProgressChat + e.getKeyChar();
+            }
+            
+            return;
+        }
+        
+        if (e.getKeyCode() == KeyEvent.VK_T)
+        {
+            inProgressChat = "";
+            typing = true;
+        }
+        
         if (e.getKeyCode() == KeyEvent.VK_SPACE)
             spacePressed = true;
         else if(e.getKeyCode() == KeyEvent.VK_W)

@@ -5,3 +5,4 @@
 *.ctxt
 *.bluej
 .DS_Store
+/dist/

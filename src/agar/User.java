@@ -53,8 +53,12 @@ public class User
     
     private int mergeTimerID = 0;
     private static int thrownMassID = 0;
+    
+    private ArrayList<String> chatData;
+    private int lastChatIndex = -1;
+    private boolean sentInitialChat = false;
 
-    public User(Socket newSocket, ArrayList<GameObject> userData, Object LOCK)
+    public User(Socket newSocket, ArrayList<GameObject> userData, ArrayList<String> chatData, Object LOCK)
     {
         // Set properties
         socket = newSocket;
@@ -68,6 +72,7 @@ public class User
         inputHandler.start();
         outputHandler = new OutputHandler();
         outputHandler.start();
+        this.chatData = chatData;
         (new Thread(new DisconnectWatcher())).start();
     }
 
@@ -161,6 +166,13 @@ public class User
                         Vector2D target = new Vector2D(Double.parseDouble(message.split(",")[1]), Double.parseDouble(message.split(",")[2]));
                         throwMass(target);
                     }
+                    else if(message.startsWith("CHAT "))
+                    {
+                        synchronized(chatData)
+                        {
+                            chatData.add(name + ": " + message.substring(5));
+                        }
+                    }
                     else if(message.length() > 0)
                     {
                         velocityX = Double.parseDouble(message.split(",")[0]);
@@ -208,6 +220,14 @@ public class User
                     {
                         out.println("WORLDFULL " + getWorldData());
                         willBroadcastWorld = false;
+                    }
+                    else if(lastChatIndex != chatData.size() - 1)
+                    {
+                        synchronized(chatData)
+                        {
+                            while(lastChatIndex != chatData.size() - 1)
+                                out.println("CHAT " + chatData.get(++lastChatIndex));
+                        }
                     }
                     else
                     {
